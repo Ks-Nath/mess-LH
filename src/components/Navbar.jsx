@@ -28,10 +28,10 @@ export default function Navbar({ onMenuClick }) {
                     </button>
 
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-200">
+                        <div className="w-8 h-8 rounded-lg bg-pink-400 flex items-center justify-center shadow-sm shadow-pink-200">
                             <ChefHat className="w-4 h-4 text-white" />
                         </div>
-                        <span className="text-lg font-bold text-gray-900 tracking-tight hidden sm:block">MessPro</span>
+                        <span className="text-lg font-bold text-gray-900 tracking-tight hidden sm:block">MessLH</span>
                     </div>
                 </div>
 

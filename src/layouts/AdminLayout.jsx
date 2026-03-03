@@ -40,7 +40,7 @@ export default function AdminLayout() {
                         >
                             <Menu className="w-6 h-6" />
                         </button>
-                        <h2 className="text-lg font-semibold text-gray-800">MessPro Admin</h2>
+                        <h2 className="text-lg font-semibold text-gray-800">MessLH Admin</h2>
                     </div>
                     {/* Spacer for desktop alignment if needed */}
                     <div className="hidden lg:block"></div>

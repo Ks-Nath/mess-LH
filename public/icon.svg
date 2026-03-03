@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="64" fill="#4F46E5"/>
+  <rect width="512" height="512" rx="64" fill="#f472b6"/>
   <g transform="translate(256, 260)" fill="white">
     <!-- Chef hat body -->
     <ellipse cx="0" cy="30" rx="95" ry="70" fill="white"/>
@@ -10,7 +10,7 @@
     <circle cx="-35" cy="-55" r="40"/>
     <circle cx="35" cy="-55" r="40"/>
     <!-- Hat band -->
-    <rect x="-90" y="55" width="180" height="45" rx="6" fill="#4338CA"/>
+    <rect x="-90" y="55" width="180" height="45" rx="6" fill="#db2777"/>
     <!-- Lines on band -->
     <rect x="-60" y="68" width="120" height="3" rx="1.5" fill="white" opacity="0.4"/>
     <rect x="-45" y="78" width="90" height="3" rx="1.5" fill="white" opacity="0.3"/>
