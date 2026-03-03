@@ -11,10 +11,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.svg'],
       manifest: {
-        name: 'MessPro - Mess Management System',
-        short_name: 'MessPro',
+        name: 'MessLH - Ladies Hostel Mess',
+        short_name: 'MessLH',
         description: 'Manage your hostel mess, leaves, bills and menu',
-        theme_color: '#4F46E5',
+        theme_color: '#f472b6',
         background_color: '#F9FAFB',
         display: 'standalone',
         scope: '/',
