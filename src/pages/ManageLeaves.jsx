@@ -217,7 +217,7 @@ export default function ManageLeaves() {
                                                 <th className="px-4 py-3 font-medium text-gray-700">Mess No</th>
                                                 <th className="px-4 py-3 font-medium text-gray-700">Name</th>
                                                 <th className="px-4 py-3 font-medium text-gray-700 hidden md:table-cell">Phone</th>
-                                                <th className="px-4 py-3 font-medium text-gray-700 text-right">Action</th>
+
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
@@ -234,18 +234,7 @@ export default function ManageLeaves() {
                                                         </td>
                                                         <td className="px-4 py-3">{student ? student.name : 'Unknown'}</td>
                                                         <td className="px-4 py-3 hidden md:table-cell">{student ? student.phone : '-'}</td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            <Button
-                                                                variant="destructive"
-                                                                size="sm"
-                                                                onClick={async () => {
-                                                                    await removeLeave(messNo, formatDateKey(selectedDate));
-                                                                    toast.success('Leave cancelled');
-                                                                }}
-                                                            >
-                                                                Cancel
-                                                            </Button>
-                                                        </td>
+
                                                     </tr>
                                                 );
                                             })}
