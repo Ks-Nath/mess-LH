@@ -200,7 +200,7 @@ export default function ManageLeaves() {
                                 />
                             </CardTitle>
                             <CardDescription>
-                                {leavesForDate.length} student{leavesForDate.length !== 1 ? 's' : ''} on leave for {selectedDate.toDateString()}
+                                <span className="text-blue-600 font-bold">{leavesForDate.length}</span> student{leavesForDate.length !== 1 ? 's' : ''} on leave for {selectedDate.toDateString()}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
