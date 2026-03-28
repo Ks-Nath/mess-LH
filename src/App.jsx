@@ -11,6 +11,7 @@ import ManageStudents from './pages/ManageStudents';
 import ManageLeaves from './pages/ManageLeaves';
 import AdminBills from './pages/AdminBills';
 import AdminSettings from './pages/AdminSettings';
+import VegList from './pages/admin/VegList';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './layouts/DashboardLayout';
 import AdminLayout from './layouts/AdminLayout';
@@ -50,6 +51,7 @@ export default function App() {
                 <Route path="menu" element={<ManageMenu />} />
                 <Route path="students" element={<ManageStudents />} />
                 <Route path="leaves" element={<ManageLeaves />} />
+                <Route path="veg-list" element={<VegList />} />
                 <Route path="bills" element={<AdminBills />} />
                 <Route path="settings" element={<AdminSettings />} />
             </Route>

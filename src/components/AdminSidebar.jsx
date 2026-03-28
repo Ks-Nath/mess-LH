@@ -8,7 +8,8 @@ import {
     ChefHat,
     Bell,
     FileSpreadsheet,
-    Settings
+    Settings,
+    Leaf
 } from 'lucide-react';
 import { Separator } from './ui/separator';
 
@@ -16,6 +17,7 @@ const navItems = [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/admin/menu', label: 'Manage Menu', icon: UtensilsCrossed },
     { to: '/admin/students', label: 'Students', icon: Users },
+    { to: '/admin/veg-list', label: 'Veg List', icon: Leaf },
     { to: '/admin/leaves', label: 'Leave Reports', icon: Bell },
     { to: '/admin/bills', label: 'Finance', icon: FileSpreadsheet },
     { to: '/admin/settings', label: 'Settings', icon: Settings },

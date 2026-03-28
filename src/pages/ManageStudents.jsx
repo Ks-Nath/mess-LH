@@ -98,12 +98,12 @@ export default function ManageStudents() {
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <div className="flex flex-1 items-center bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent max-w-sm transition-all">
+                    <Search className="w-4 h-4 text-gray-400 shrink-0 mr-2" />
                     <input
                         type="text"
                         placeholder="Search students (Name, Mess No)..."
-                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                        className="w-full bg-transparent outline-none text-sm"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />

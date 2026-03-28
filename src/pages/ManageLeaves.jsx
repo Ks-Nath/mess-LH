@@ -29,6 +29,9 @@ export default function ManageLeaves() {
     };
 
     const leavesForDate = getLeavesByDate(formatDateKey(selectedDate));
+    const sortedLeavesForDate = [...leavesForDate].sort((a, b) => {
+        return a.messNumber.localeCompare(b.messNumber, undefined, { numeric: true, sensitivity: 'base' });
+    });
 
     const handleGrantLeave = async () => {
         if (!overrideMessNumber) {
@@ -128,12 +131,17 @@ export default function ManageLeaves() {
                 }))
             );
 
-            const { error } = await supabase
-                .from('leaves')
-                .insert(records);
+            // Batched inserts of 100 records at a time
+            const BATCH_SIZE = 100;
+            let insertError = null;
+            for (let i = 0; i < records.length; i += BATCH_SIZE) {
+                const batch = records.slice(i, i + BATCH_SIZE);
+                const { error } = await supabase.from('leaves').insert(batch);
+                if (error) { insertError = error; break; }
+            }
 
-            if (error) {
-                toast.error(`Failed: ${error.message}`, { id: 'ltj-grant' });
+            if (insertError) {
+                toast.error(`Failed: ${insertError.message}`, { id: 'ltj-grant' });
                 return;
             }
 
@@ -221,7 +229,7 @@ export default function ManageLeaves() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
-                                            {leavesForDate.map(leaf => {
+                                            {sortedLeavesForDate.map(leaf => {
                                                 const messNo = leaf.messNumber;
                                                 const student = students.find(s => s.messNumber === messNo);
                                                 return (

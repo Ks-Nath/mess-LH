@@ -42,27 +42,39 @@ export function LeaveProvider({ children }) {
     const fetchLeaves = async () => {
         if (!user?.hostelId) return;
 
-        let query = supabase
-            .from('leaves')
-            .select('leave_date, mess_number, is_admin_granted')
-            .eq('status', 'Approved')
-            .eq('hostel_id', user.hostelId);
+        const PAGE_SIZE = 100;
+        let allData = [];
+        let from = 0;
 
-        // If STUDENT, only fetch OWN leaves
-        if (user.role !== 'admin' && user.messNumber) {
-            query = query.eq('mess_number', user.messNumber);
-        }
+        // Paginated fetch to bypass server-side row cap
+        while (true) {
+            let query = supabase
+                .from('leaves')
+                .select('leave_date, mess_number, is_admin_granted')
+                .eq('status', 'Approved')
+                .eq('hostel_id', user.hostelId)
+                .range(from, from + PAGE_SIZE - 1);
 
-        const { data, error } = await query;
+            // If STUDENT, only fetch OWN leaves
+            if (user.role !== 'admin' && user.messNumber) {
+                query = query.eq('mess_number', user.messNumber);
+            }
 
-        if (error) {
-            console.error('Error fetching leaves:', error);
-            return;
+            const { data, error } = await query;
+
+            if (error) {
+                console.error('Error fetching leaves:', error);
+                return;
+            }
+
+            allData = allData.concat(data);
+            if (data.length < PAGE_SIZE) break;
+            from += PAGE_SIZE;
         }
 
         // Transform records to map: { 'YYYY-MM-DD': [{ messNumber, isAdminGranted }] }
         const leavesMap = {};
-        data.forEach(record => {
+        allData.forEach(record => {
             const d = record.leave_date;
             if (!leavesMap[d]) leavesMap[d] = [];
 
@@ -172,12 +184,16 @@ export function LeaveProvider({ children }) {
             return { ...prev, [shapeDate]: updated };
         });
 
-        const { error } = await supabase.from('leaves').insert(newEntries);
-
-        if (error) {
-            console.error('Error adding bulk leaves:', error);
-            fetchLeaves(); // Sync back
-            return { success: false, error: error.message };
+        // Batched inserts of 100 records at a time
+        const BATCH_SIZE = 100;
+        for (let i = 0; i < newEntries.length; i += BATCH_SIZE) {
+            const batch = newEntries.slice(i, i + BATCH_SIZE);
+            const { error } = await supabase.from('leaves').insert(batch);
+            if (error) {
+                console.error('Error adding bulk leaves:', error);
+                fetchLeaves(); // Sync back
+                return { success: false, error: error.message };
+            }
         }
         return { success: true };
     };
