@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Leaf, Search, X, Loader2, Check, UserPlus, ShieldAlert } from 'lucide-react';
+import { Leaf, Search, X, Loader2, Check, UserPlus, ShieldAlert, Sun, Moon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useStudents } from '../../context/StudentContext';
 import { useAuth } from '../../context/AuthContext';
@@ -12,7 +12,8 @@ export default function VegList() {
     const { students } = useStudents();
     const { user } = useAuth();
     
-    const [attendance, setAttendance] = useState([]); // List of mess_numbers that ate today
+    // attendance is now an object: { "messNumber": { afternoon: bool, night: bool } }
+    const [attendance, setAttendance] = useState({});
     const [loadingAttendance, setLoadingAttendance] = useState(true);
     const [search, setSearch] = useState('');
     
@@ -40,7 +41,15 @@ export default function VegList() {
                     },
                     (payload) => {
                         if (payload.new.eaten_date === getTodayStr()) {
-                            setAttendance(prev => [...new Set([...prev, payload.new.mess_number])]);
+                            const messNo = payload.new.mess_number;
+                            const meal = payload.new.meal_type;
+                            setAttendance(prev => ({
+                                ...prev,
+                                [messNo]: {
+                                    ...prev[messNo],
+                                    [meal]: true
+                                }
+                            }));
                         }
                     }
                 )
@@ -58,12 +67,19 @@ export default function VegList() {
         try {
             const { data, error } = await supabase
                 .from('veg_attendance')
-                .select('mess_number')
+                .select('mess_number, meal_type')
                 .eq('eaten_date', getTodayStr())
                 .eq('hostel_id', user.hostelId);
 
             if (error) throw error;
-            setAttendance(data.map(r => r.mess_number));
+            
+            // Build map: { "messNumber": { afternoon: true/false, night: true/false } }
+            const map = {};
+            data.forEach(r => {
+                if (!map[r.mess_number]) map[r.mess_number] = {};
+                map[r.mess_number][r.meal_type] = true;
+            });
+            setAttendance(map);
         } catch (error) {
             console.error("Error fetching veg attendance:", error);
         } finally {
@@ -71,11 +87,18 @@ export default function VegList() {
         }
     };
 
-    const handleFreeze = async (messNumber) => {
-        if (!user?.hostelId || attendance.includes(messNumber)) return;
+    const handleFreeze = async (messNumber, mealType) => {
+        if (!user?.hostelId) return;
+        if (attendance[messNumber]?.[mealType]) return; // Already frozen
         
         // Optimistic update
-        setAttendance(prev => [...prev, messNumber]);
+        setAttendance(prev => ({
+            ...prev,
+            [messNumber]: {
+                ...prev[messNumber],
+                [mealType]: true
+            }
+        }));
         
         try {
             const { error } = await supabase
@@ -83,17 +106,24 @@ export default function VegList() {
                 .insert([{
                     mess_number: messNumber,
                     eaten_date: getTodayStr(),
+                    meal_type: mealType,
                     hostel_id: user.hostelId
                 }]);
 
             if (error) {
-                // Revert optimistic update
-                setAttendance(prev => prev.filter(m => m !== messNumber));
-                if (error.code === '23505') { // Unique constraint violation (already clicked)
-                     setAttendance(prev => [...prev, messNumber]); 
-                } else {
-                     throw error;
+                if (error.code === '23505') {
+                    // Already exists — keep it frozen
+                    return;
                 }
+                // Revert optimistic update
+                setAttendance(prev => ({
+                    ...prev,
+                    [messNumber]: {
+                        ...prev[messNumber],
+                        [mealType]: false
+                    }
+                }));
+                throw error;
             }
         } catch (error) {
             console.error("Error logging attendance:", error);
@@ -111,8 +141,7 @@ export default function VegList() {
                 .eq('hostel_id', user.hostelId);
                 
             if (error) throw error;
-            // The StudentContext real-time subscription will automatically update the table!
-            setManageSearch(''); // clear search after action
+            setManageSearch('');
         } catch (error) {
             console.error("Error updating mess type:", error);
             alert("Failed to update student.");
@@ -128,7 +157,6 @@ export default function VegList() {
                s.messNumber.toLowerCase().includes(search.toLowerCase());
     });
     
-    // Derived state for the manage modal
     const manageStudentResult = manageSearch.trim() === '' ? null : students.find(s => s.messNumber.toUpperCase() === manageSearch.trim().toUpperCase());
 
     return (
@@ -171,55 +199,90 @@ export default function VegList() {
                 </div>
             ) : (
                 <Card className="border-gray-200 shadow-sm overflow-hidden bg-white/50 backdrop-blur-sm">
-                    <CardContent className="p-0 overflow-x-auto">
-                        <table className="w-full text-left text-sm min-w-[600px]">
-                            <thead className="bg-gray-50/80 border-b border-gray-200">
-                                <tr>
-                                    <th className="px-6 py-4 font-semibold text-gray-900 w-1/4">Mess No</th>
-                                    <th className="px-6 py-4 font-semibold text-gray-900 w-1/2">Name</th>
-                                    <th className="px-6 py-4 font-semibold text-gray-900 text-center w-1/4">Action (Freeze)</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {filteredOutList.map((student) => {
-                                    const isFrozen = attendance.includes(student.messNumber);
-                                    return (
-                                        <tr 
-                                            key={student.id} 
-                                            className={cn(
-                                                "transition-colors duration-300",
-                                                isFrozen ? "bg-gray-100/50 grayscale-[0.8] opacity-60" : "hover:bg-green-50/50"
-                                            )}
-                                        >
-                                            <td className={cn("px-6 py-4 font-bold", isFrozen ? "text-red-500" : "text-gray-900")}>
-                                                {student.messNumber}
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-700 font-medium">{student.name}</td>
-                                            <td className="px-6 py-4 text-center">
-                                                <button
-                                                    onClick={() => handleFreeze(student.messNumber)}
-                                                    disabled={isFrozen}
-                                                    className={cn(
-                                                        "w-8 h-8 rounded-lg outline-none transition-all flex items-center justify-center mx-auto",
-                                                        isFrozen 
-                                                            ? "bg-gray-300 cursor-not-allowed text-white" 
-                                                            : "bg-white border-2 border-green-500 text-transparent hover:bg-green-50 cursor-pointer"
-                                                    )}
-                                                >
-                                                    <Check className={cn("w-5 h-5", isFrozen ? "text-white opacity-100" : "opacity-0")} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                        {filteredOutList.length === 0 && (
-                            <div className="p-12 text-center text-gray-500">
-                                <Leaf className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                                <p>No vegetarian students found.</p>
-                            </div>
-                        )}
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto w-full">
+                            <table className="w-full text-left whitespace-nowrap">
+                                <thead className="bg-gray-50/80 border-b border-gray-200 text-xs sm:text-sm text-gray-600">
+                                    <tr>
+                                        <th className="px-3 py-3 sm:px-4 lg:px-5 font-semibold w-20 sm:w-24">Mess No</th>
+                                        <th className="px-3 py-3 sm:px-4 lg:px-5 font-semibold">Name</th>
+                                        <th className="px-2 py-3 font-semibold text-center w-16 sm:w-20">
+                                            <div className="flex flex-col sm:flex-row items-center justify-center gap-1">
+                                                <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600" />
+                                                <span className="text-[11px] sm:text-xs font-medium uppercase tracking-wider">Noon</span>
+                                            </div>
+                                        </th>
+                                        <th className="px-2 py-3 font-semibold text-center w-16 sm:w-20">
+                                            <div className="flex flex-col sm:flex-row items-center justify-center gap-1">
+                                                <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500" />
+                                                <span className="text-[11px] sm:text-xs font-medium uppercase tracking-wider">Night</span>
+                                            </div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {filteredOutList.map((student) => {
+                                        const afternoonFrozen = !!attendance[student.messNumber]?.afternoon;
+                                        const nightFrozen = !!attendance[student.messNumber]?.night;
+                                        const fullyFrozen = afternoonFrozen && nightFrozen;
+                                        return (
+                                            <tr 
+                                                key={student.id} 
+                                                className={cn(
+                                                    "transition-colors duration-200 text-[13px] sm:text-sm",
+                                                    fullyFrozen ? "bg-gray-50/80 opacity-60" : "hover:bg-green-50/40 even:bg-slate-50/30"
+                                                )}
+                                            >
+                                                <td className={cn("px-3 py-2.5 sm:px-4 lg:px-5 font-semibold tracking-tight", fullyFrozen ? "text-red-500/80" : "text-gray-900")}>
+                                                    {student.messNumber}
+                                                </td>
+                                                <td className={cn("px-3 py-2.5 sm:px-4 lg:px-5", fullyFrozen ? "text-gray-400" : "text-gray-700")}>
+                                                    <div className="max-w-[120px] sm:max-w-[200px] md:max-w-none truncate font-medium">
+                                                        {student.name}
+                                                    </div>
+                                                </td>
+                                                {/* Afternoon Checkbox */}
+                                                <td className="px-2 py-2 text-center">
+                                                    <button
+                                                        onClick={() => handleFreeze(student.messNumber, 'afternoon')}
+                                                        disabled={afternoonFrozen}
+                                                        className={cn(
+                                                            "w-9 h-9 sm:w-8 sm:h-8 rounded-md outline-none transition-all flex items-center justify-center mx-auto shadow-sm",
+                                                            afternoonFrozen 
+                                                                ? "bg-green-100 border border-green-300 cursor-not-allowed" 
+                                                                : "bg-white border border-gray-300 hover:border-green-500 hover:bg-green-50 cursor-pointer active:scale-95"
+                                                        )}
+                                                    >
+                                                        <Check className={cn("w-4 h-4 sm:w-4 sm:h-4 text-green-600 transition-transform", afternoonFrozen ? "opacity-100 scale-100" : "opacity-0 scale-75")} />
+                                                    </button>
+                                                </td>
+                                                {/* Night Checkbox */}
+                                                <td className="px-2 py-2 text-center">
+                                                    <button
+                                                        onClick={() => handleFreeze(student.messNumber, 'night')}
+                                                        disabled={nightFrozen}
+                                                        className={cn(
+                                                            "w-9 h-9 sm:w-8 sm:h-8 rounded-md outline-none transition-all flex items-center justify-center mx-auto shadow-sm",
+                                                            nightFrozen 
+                                                                ? "bg-red-100 border border-red-300 cursor-not-allowed" 
+                                                                : "bg-white border border-gray-300 hover:border-red-500 hover:bg-red-50 cursor-pointer active:scale-95"
+                                                        )}
+                                                    >
+                                                        <Check className={cn("w-4 h-4 sm:w-4 sm:h-4 text-red-600 transition-transform", nightFrozen ? "opacity-100 scale-100" : "opacity-0 scale-75")} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                            {filteredOutList.length === 0 && (
+                                <div className="p-12 text-center text-gray-500">
+                                    <Leaf className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                                    <p>No vegetarian students found.</p>
+                                </div>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
             )}
