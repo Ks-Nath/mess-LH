@@ -10,8 +10,9 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
 export default function AdminBills() {
-    const { students } = useStudents();
-    const { getLeavesByDate } = useLeaves();
+    const { students, loading: studentsLoading } = useStudents();
+    const { getLeavesByDate, loading: leavesLoading } = useLeaves();
+    const isLoading = studentsLoading || leavesLoading;
     const { messRate } = useHostel();
 
     // Mode: 'month' or 'range'
@@ -224,10 +225,10 @@ export default function AdminBills() {
                     <p className="text-gray-500">Generate and download bill reports as Excel.</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button onClick={handleDownloadOverview} variant="outline" className="gap-2 border-green-600 text-green-600 hover:bg-green-50 shadow-sm">
+                    <Button onClick={handleDownloadOverview} disabled={isLoading} variant="outline" className="gap-2 border-green-600 text-green-600 hover:bg-green-50 shadow-sm">
                         <FileSpreadsheet className="w-4 h-4" /> Overview
                     </Button>
-                    <Button onClick={handleDownloadExcel} className="gap-2 bg-green-600 hover:bg-green-700 text-white shadow-sm">
+                    <Button onClick={handleDownloadExcel} disabled={isLoading} className="gap-2 bg-green-600 hover:bg-green-700 text-white shadow-sm">
                         <Download className="w-4 h-4" /> Download Excel
                     </Button>
                 </div>
@@ -317,49 +318,56 @@ export default function AdminBills() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
-                                <tr>
-                                    <th className="px-6 py-4">Mess No</th>
-                                    <th className="px-6 py-4">Name</th>
-                                    <th className="px-6 py-4 text-center">Total Days</th>
-                                    <th className="px-6 py-4 text-center">Leaves</th>
-                                    <th className="px-6 py-4 text-center">Billable Days</th>
-                                    <th className="px-6 py-4 text-right font-bold">Final Bill (₹)</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 bg-white">
-                                {studentBills.map((student) => (
-                                    <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-gray-900">{student.messNumber}</td>
-                                        <td className="px-6 py-4 text-gray-600">{student.name}</td>
-                                        <td className="px-6 py-4 text-center text-gray-500">{student.totalDays}</td>
-                                        <td className="px-6 py-4 text-center text-amber-600 font-medium">{student.leaveCount}</td>
-                                        <td className="px-6 py-4 text-center text-green-600 font-medium">{student.billableDays}</td>
-                                        <td className="px-6 py-4 text-right font-bold text-gray-900">₹{student.totalBill.toLocaleString()}</td>
+                    {isLoading ? (
+                        <div className="p-12 text-center text-gray-500 flex flex-col items-center">
+                            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
+                            <p>Calculating bills...</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-4">Mess No</th>
+                                        <th className="px-6 py-4">Name</th>
+                                        <th className="px-6 py-4 text-center">Total Days</th>
+                                        <th className="px-6 py-4 text-center">Leaves</th>
+                                        <th className="px-6 py-4 text-center">Billable Days</th>
+                                        <th className="px-6 py-4 text-right font-bold">Final Bill (₹)</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                            {/* Grand Total Footer */}
-                            <tfoot className="bg-gray-50 border-t-2 border-gray-200">
-                                <tr>
-                                    <td className="px-6 py-4" />
-                                    <td className="px-6 py-4 font-bold text-gray-900">Grand Total</td>
-                                    <td className="px-6 py-4 text-center text-gray-500 font-medium">{totalDays}</td>
-                                    <td className="px-6 py-4 text-center text-amber-600 font-bold">{totalLeaves}</td>
-                                    <td className="px-6 py-4" />
-                                    <td className="px-6 py-4 text-right font-bold text-gray-900 text-base">₹{grandTotal.toLocaleString()}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                        {studentBills.length === 0 && (
-                            <div className="p-12 text-center text-gray-500">
-                                <FileSpreadsheet className="w-10 h-10 mx-auto text-gray-300 mb-3" />
-                                <p>No students found.</p>
-                            </div>
-                        )}
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 bg-white">
+                                    {studentBills.map((student) => (
+                                        <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
+                                            <td className="px-6 py-4 font-medium text-gray-900">{student.messNumber}</td>
+                                            <td className="px-6 py-4 text-gray-600">{student.name}</td>
+                                            <td className="px-6 py-4 text-center text-gray-500">{student.totalDays}</td>
+                                            <td className="px-6 py-4 text-center text-amber-600 font-medium">{student.leaveCount}</td>
+                                            <td className="px-6 py-4 text-center text-green-600 font-medium">{student.billableDays}</td>
+                                            <td className="px-6 py-4 text-right font-bold text-gray-900">₹{student.totalBill.toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                {/* Grand Total Footer */}
+                                <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                                    <tr>
+                                        <td className="px-6 py-4" />
+                                        <td className="px-6 py-4 font-bold text-gray-900">Grand Total</td>
+                                        <td className="px-6 py-4 text-center text-gray-500 font-medium">{totalDays}</td>
+                                        <td className="px-6 py-4 text-center text-amber-600 font-bold">{totalLeaves}</td>
+                                        <td className="px-6 py-4" />
+                                        <td className="px-6 py-4 text-right font-bold text-gray-900 text-base">₹{grandTotal.toLocaleString()}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            {studentBills.length === 0 && (
+                                <div className="p-12 text-center text-gray-500">
+                                    <FileSpreadsheet className="w-10 h-10 mx-auto text-gray-300 mb-3" />
+                                    <p>No students found.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

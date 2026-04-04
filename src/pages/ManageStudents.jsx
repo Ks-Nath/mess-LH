@@ -8,8 +8,10 @@ import { useStudents } from '../context/StudentContext';
 import { useLeaves } from '../context/LeaveContext';
 
 export default function ManageStudents() {
-    const { students, loading, addStudent, removeStudent } = useStudents();
-    const { isStudentOnLeave } = useLeaves();
+    const { students, loading: studentsLoading, addStudent, removeStudent } = useStudents();
+    const { isStudentOnLeave, loading: leavesLoading } = useLeaves();
+
+    const loading = studentsLoading || leavesLoading;
 
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [search, setSearch] = useState('');

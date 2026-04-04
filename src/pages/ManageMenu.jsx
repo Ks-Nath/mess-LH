@@ -72,13 +72,14 @@ export default function ManageMenu() {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex h-screen items-center justify-center">
-                <Loader className="w-8 h-8 animate-spin text-primary-600" />
-            </div>
-        );
-    }
+    // if (loading) {
+    //     return (
+    //         <div className="flex h-screen items-center justify-center">
+    //             <Loader className="w-8 h-8 animate-spin text-primary-600" />
+    //         </div>
+    //     );
+    // }
+
 
     // Default empty structure if day not found yet
     const displayMenu = localDayMenu || { breakfast: [], lunch: [], snack: [], dinner: [] };
@@ -120,39 +121,53 @@ export default function ManageMenu() {
                     <Card key={mealType} className="border-gray-200 shadow-sm relative group flex flex-col">
                         <CardHeader className="flex flex-row items-center justify-between pb-2 bg-gray-50/50">
                             <CardTitle className="capitalize text-lg font-bold text-gray-800">{mealType}</CardTitle>
-                            <Badge variant="secondary" className="bg-white border-gray-200">{displayMenu[mealType]?.length || 0}</Badge>
+                            {loading ? (
+                                <div className="h-5 w-8 bg-white rounded animate-pulse" />
+                            ) : (
+                                <Badge variant="secondary" className="bg-white border-gray-200">{displayMenu[mealType]?.length || 0}</Badge>
+                            )}
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col pt-4">
-                            <ul className="space-y-2 mb-4 flex-1">
-                                {displayMenu[mealType]?.map((item, idx) => (
-                                    <li key={idx} className="flex items-center justify-between p-2 rounded bg-gray-50 text-sm text-gray-700 group/item hover:bg-gray-100 transition-colors">
-                                        <span className="truncate mr-2">{item}</span>
-                                        <button
-                                            onClick={() => removeItem(mealType, idx)}
-                                            className="text-gray-400 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </li>
-                                ))}
-                                {(!displayMenu[mealType] || displayMenu[mealType].length === 0) && (
-                                    <li className="text-gray-400 text-sm italic p-2 text-center">No items</li>
-                                )}
-                            </ul>
+                            {loading ? (
+                                <div className="space-y-2 mb-4 flex-1">
+                                    <div className="h-8 w-full bg-gray-50 rounded animate-pulse" />
+                                    <div className="h-8 w-full bg-gray-50 rounded animate-pulse" />
+                                    <div className="h-8 w-full bg-gray-50 rounded animate-pulse" />
+                                </div>
+                            ) : (
+                                <ul className="space-y-2 mb-4 flex-1">
+                                    {displayMenu[mealType]?.map((item, idx) => (
+                                        <li key={idx} className="flex items-center justify-between p-2 rounded bg-gray-50 text-sm text-gray-700 group/item hover:bg-gray-100 transition-colors">
+                                            <span className="truncate mr-2">{item}</span>
+                                            <button
+                                                onClick={() => removeItem(mealType, idx)}
+                                                className="text-gray-400 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </li>
+                                    ))}
+                                    {(!displayMenu[mealType] || displayMenu[mealType].length === 0) && (
+                                        <li className="text-gray-400 text-sm italic p-2 text-center">No items</li>
+                                    )}
+                                </ul>
+                            )}
 
                             <div className="flex gap-2 mt-auto pt-2 border-t border-gray-100">
                                 <input
                                     type="text"
                                     placeholder="Add item..."
-                                    className="flex-1 px-3 py-1.5 text-sm rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="flex-1 px-3 py-1.5 text-sm rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
                                     value={inputs[mealType] || ''}
                                     onChange={(e) => setInputs(prev => ({ ...prev, [mealType]: e.target.value }))}
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddItem(mealType)}
+                                    disabled={loading}
                                 />
                                 <Button
                                     size="sm"
                                     className="h-8 w-8 p-0 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-200"
                                     onClick={() => handleAddItem(mealType)}
+                                    disabled={loading}
                                 >
                                     <Plus className="w-4 h-4" />
                                 </Button>

@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Users, AlertCircle, UtensilsCrossed } from 'lucide-react';
+import { Users, AlertCircle, UtensilsCrossed, Loader2 } from 'lucide-react';
 import { useStudents } from '../context/StudentContext';
 import { useLeaves } from '../context/LeaveContext';
 
 export default function AdminDashboard() {
-    const { students } = useStudents();
-    const { getLeavesByDate } = useLeaves();
+    const { students, loading: studentsLoading } = useStudents();
+    const { getLeavesByDate, loading: leavesLoading } = useLeaves();
+
+    const isLoading = studentsLoading || leavesLoading;
 
     // Calculate stats
     // Use local date for "Today" because leaves are stored as YYYY-MM-DD (local)
@@ -64,8 +66,16 @@ export default function AdminDashboard() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                                <h3 className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</h3>
-                                <p className="text-xs text-gray-400 mt-1">{stat.desc}</p>
+                                {isLoading ? (
+                                    <div className="h-9 w-20 bg-gray-200 rounded-md animate-pulse mt-1 mb-1" />
+                                ) : (
+                                    <h3 className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</h3>
+                                )}
+                                {isLoading ? (
+                                    <div className="h-4 w-32 bg-gray-100 rounded animate-pulse mt-1" />
+                                ) : (
+                                    <p className="text-xs text-gray-400 mt-1">{stat.desc}</p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

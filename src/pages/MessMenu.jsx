@@ -23,13 +23,14 @@ export default function MessMenu() {
 
     const currentMenu = weeklyMenu[selectedDay];
 
-    if (loading) {
-        return (
-            <div className="flex h-[50vh] items-center justify-center">
-                <Loader className="w-8 h-8 animate-spin text-primary-600" />
-            </div>
-        );
-    }
+    // if (loading) {
+    //     return (
+    //         <div className="flex h-[50vh] items-center justify-center">
+    //             <Loader className="w-8 h-8 animate-spin text-primary-600" />
+    //         </div>
+    //     );
+    // }
+
 
     return (
         <div className="space-y-8 animate-fade-in">
@@ -78,21 +79,36 @@ export default function MessMenu() {
                                     <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", config.bg)}>
                                         <config.icon className={cn("w-5 h-5", config.color)} />
                                     </div>
-                                    <Badge variant="secondary" className="bg-gray-50 text-gray-500 font-normal">
-                                        {items.length} items
-                                    </Badge>
+                                    {loading ? (
+                                        <div className="h-5 w-12 bg-gray-100 rounded animate-pulse" />
+                                    ) : (
+                                        <Badge variant="secondary" className="bg-gray-50 text-gray-500 font-normal">
+                                            {items.length} items
+                                        </Badge>
+                                    )}
                                 </div>
                                 <CardTitle className="mt-4 text-lg">{config.label}</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <ul className="space-y-3">
-                                    {items.map((item, i) => (
-                                        <li key={i} className="flex items-start gap-3 text-sm text-gray-600">
-                                            <span className={cn("mt-1.5 w-1.5 h-1.5 rounded-full shrink-0", config.bg.replace('bg-', 'bg-').replace('50', '400'))} />
-                                            <span className="leading-relaxed">{item}</span>
-                                        </li>
-                                    ))}
-                                </ul>
+                                {loading ? (
+                                    <div className="space-y-3">
+                                        <div className="h-3 w-full bg-gray-50 rounded animate-pulse" />
+                                        <div className="h-3 w-3/4 bg-gray-50 rounded animate-pulse" />
+                                        <div className="h-3 w-5/6 bg-gray-50 rounded animate-pulse" />
+                                    </div>
+                                ) : (
+                                    <ul className="space-y-3">
+                                        {items.map((item, i) => (
+                                            <li key={i} className="flex items-start gap-3 text-sm text-gray-600">
+                                                <span className={cn("mt-1.5 w-1.5 h-1.5 rounded-full shrink-0", config.bg.replace('bg-', 'bg-').replace('50', '400'))} />
+                                                <span className="leading-relaxed">{item}</span>
+                                            </li>
+                                        ))}
+                                        {items.length === 0 && (
+                                            <li className="text-gray-400 text-sm italic py-2">No items listed</li>
+                                        )}
+                                    </ul>
+                                )}
                             </CardContent>
                         </Card>
                     );

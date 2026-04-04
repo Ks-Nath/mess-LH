@@ -12,7 +12,7 @@ import { useHostel } from '../context/HostelContext';
 
 export default function LeaveSelection() {
     const { user } = useAuth();
-    const { getLeavesByDate, addLeave, removeLeave, leaves } = useLeaves();
+    const { getLeavesByDate, addLeave, removeLeave, leaves, loading: leavesLoading } = useLeaves();
     const { cutoffTime } = useHostel();
 
     const [today, setToday] = useState(new Date());
@@ -313,9 +313,13 @@ export default function LeaveSelection() {
                             <div className={`p-3 rounded-lg border ${progressColors.bg} ${progressColors.border}`}>
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-semibold text-gray-600">Monthly Quota</span>
-                                    <span className={`text-xs font-bold ${progressColors.text}`}>
-                                        {leavesThisMonth} / {MAX_LEAVES_PER_MONTH}
-                                    </span>
+                                    {leavesLoading ? (
+                                        <div className="h-4 w-12 bg-white/60 rounded animate-pulse" />
+                                    ) : (
+                                        <span className={`text-xs font-bold ${progressColors.text}`}>
+                                            {leavesThisMonth} / {MAX_LEAVES_PER_MONTH}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="w-full h-2 bg-white/80 rounded-full overflow-hidden">
                                     <div
@@ -323,16 +327,24 @@ export default function LeaveSelection() {
                                         style={{ width: `${progressPercent}%` }}
                                     />
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1.5">
-                                    {isCapReached
-                                        ? 'No leaves remaining'
-                                        : `${remainingLeaves} ${remainingLeaves === 1 ? 'day' : 'days'} remaining`
-                                    }
+                                <p className="text-xs text-gray-500 mt-1.5 min-h-[16px]">
+                                    {leavesLoading ? (
+                                        <div className="h-3 w-24 bg-white/60 rounded animate-pulse" />
+                                    ) : (
+                                        isCapReached
+                                            ? 'No leaves remaining'
+                                            : `${remainingLeaves} ${remainingLeaves === 1 ? 'day' : 'days'} remaining`
+                                    )}
                                 </p>
                             </div>
                         </CardHeader>
                         <CardContent className="flex-1 overflow-y-auto max-h-[400px] p-0">
-                            {futureDates.length === 0 ? (
+                            {leavesLoading ? (
+                                <div className="p-4 space-y-4">
+                                    <div className="h-10 w-full bg-gray-100 rounded animate-pulse" />
+                                    <div className="h-10 w-full bg-gray-50 rounded animate-pulse" />
+                                </div>
+                            ) : futureDates.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">
                                     <CalendarOff className="w-10 h-10 mx-auto mb-3 opacity-20" />
                                     <p className="text-sm">No upcoming leave dates selected.</p>

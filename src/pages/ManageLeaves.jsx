@@ -9,9 +9,11 @@ import toast, { Toaster } from 'react-hot-toast';
 import { CalendarIcon, UserX, CheckCircle, AlertCircle, CalendarRange, CalendarPlus } from 'lucide-react';
 
 export default function ManageLeaves() {
-    const { getLeavesByDate, addLeave, addBulkLeaves, removeLeave, removeBulkLeaves, isStudentOnLeave, refreshLeaves } = useLeaves();
+    const { getLeavesByDate, addLeave, addBulkLeaves, removeLeave, removeBulkLeaves, isStudentOnLeave, refreshLeaves, loading: leavesLoading } = useLeaves();
     const { user } = useAuth();
-    const { students } = useStudents();
+    const { students, loading: studentsLoading } = useStudents();
+    
+    const isLoading = leavesLoading || studentsLoading;
     const [selectedDate, setSelectedDate] = useState(new Date());
 
     // Manual Override State
@@ -243,11 +245,21 @@ export default function ManageLeaves() {
                                 />
                             </CardTitle>
                             <CardDescription>
-                                <span className="text-blue-600 font-bold">{leavesForDate.length}</span> student{leavesForDate.length !== 1 ? 's' : ''} on leave for {selectedDate.toDateString()}
+                                {isLoading ? (
+                                    <div className="h-4 w-48 bg-gray-100 rounded animate-pulse mt-1" />
+                                ) : (
+                                    <span><span className="text-blue-600 font-bold">{leavesForDate.length}</span> student{leavesForDate.length !== 1 ? 's' : ''} on leave for {selectedDate.toDateString()}</span>
+                                )}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {leavesForDate.length === 0 ? (
+                            {isLoading ? (
+                                <div className="space-y-3 pt-4">
+                                    <div className="h-10 w-full bg-gray-100 rounded animate-pulse" />
+                                    <div className="h-10 w-full bg-gray-50 rounded animate-pulse" />
+                                    <div className="h-10 w-full bg-gray-50 rounded animate-pulse" />
+                                </div>
+                            ) : leavesForDate.length === 0 ? (
                                 <div className="text-center py-8 text-gray-500">
                                     <CalendarRange className="w-12 h-12 mx-auto mb-2 opacity-20" />
                                     <p>No student is on leave for this specific date.</p>

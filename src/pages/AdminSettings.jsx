@@ -78,7 +78,8 @@ export default function AdminSettings() {
         }
     };
 
-    if (loading) return <div className="p-8">Loading settings...</div>;
+    // Remove full-page loader to use skeletons instead
+    // if (loading) return <div className="p-8">Loading settings...</div>;
 
     return (
         <div className="space-y-8 animate-fade-in max-w-2xl mx-auto">
@@ -109,15 +110,21 @@ export default function AdminSettings() {
                         <div className="space-y-3">
                             <label className="block text-sm font-semibold text-gray-700">Daily Mess Rate</label>
                             <div className="relative max-w-xs">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm pointer-events-none">₹</span>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={rate}
-                                    onChange={(e) => setRate(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition-all"
-                                    required
-                                />
+                                {loading ? (
+                                    <div className="h-11 w-full bg-gray-100 rounded-xl animate-pulse" />
+                                ) : (
+                                    <>
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm pointer-events-none">₹</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={rate}
+                                            onChange={(e) => setRate(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition-all"
+                                            required
+                                        />
+                                    </>
+                                )}
                             </div>
                             <p className="text-xs text-gray-400">Amount charged per student per day.</p>
                         </div>
@@ -128,19 +135,23 @@ export default function AdminSettings() {
                         <div className="space-y-3">
                             <label className="block text-sm font-semibold text-gray-700">Leave Cutoff Time</label>
                             <div className="max-w-xs">
-                                <select
-                                    value={cutoff}
-                                    onChange={(e) => setCutoff(parseInt(e.target.value))}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition-all appearance-none cursor-pointer"
-                                    style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '20px 20px' }}
-                                >
-                                    {Array.from({ length: 24 }).map((_, i) => (
-                                        <option key={i} value={i}>
-                                            {i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`}
-                                            {i === 20 && ' (Default)'}
-                                        </option>
-                                    ))}
-                                </select>
+                                {loading ? (
+                                    <div className="h-11 w-full bg-gray-100 rounded-xl animate-pulse" />
+                                ) : (
+                                    <select
+                                        value={cutoff}
+                                        onChange={(e) => setCutoff(parseInt(e.target.value))}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition-all appearance-none cursor-pointer"
+                                        style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 12px center', backgroundRepeat: 'no-repeat', backgroundSize: '20px 20px' }}
+                                    >
+                                        {Array.from({ length: 24 }).map((_, i) => (
+                                            <option key={i} value={i}>
+                                                {i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`}
+                                                {i === 20 && ' (Default)'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                             <p className="text-xs text-gray-400">
                                 Students cannot apply for next-day leave after this time.

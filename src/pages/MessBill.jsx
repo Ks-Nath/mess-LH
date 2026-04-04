@@ -8,7 +8,7 @@ import { Separator } from '../components/ui/separator';
 
 export default function MessBill() {
     const { user } = useAuth();
-    const { getLeavesByDate } = useLeaves();
+    const { getLeavesByDate, loading: leavesLoading } = useLeaves();
     const { messRate } = useHostel();
 
     if (!user) return <div className="p-8 text-center">Please log in to view bill.</div>;
@@ -54,7 +54,11 @@ export default function MessBill() {
                     <div className="flex justify-between items-start">
                         <div>
                             <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Payable</p>
-                            <h2 className="text-4xl font-bold text-gray-900">₹{totalAmount.toLocaleString()}</h2>
+                            {leavesLoading ? (
+                                <div className="h-10 w-32 bg-gray-200 rounded animate-pulse mt-1" />
+                            ) : (
+                                <h2 className="text-4xl font-bold text-gray-900">₹{totalAmount.toLocaleString()}</h2>
+                            )}
                         </div>
                         <div className="text-right">
                             <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
@@ -79,14 +83,18 @@ export default function MessBill() {
                             <span className="text-sm text-gray-500 flex items-center gap-2">
                                 <Minus className="w-4 h-4 text-red-500" /> Leave Days
                             </span>
-                            <span className="text-sm font-medium text-red-600 text-right">− {leaveCount} days</span>
+                            <span className="text-sm font-medium text-red-600 text-right">
+                                {leavesLoading ? <span className="inline-block h-4 w-12 bg-red-100 rounded animate-pulse" /> : `− ${leaveCount} days`}
+                            </span>
                         </div>
 
                         <div className="grid grid-cols-2 p-4 sm:px-6 hover:bg-gray-50/30 transition-colors bg-blue-50/10">
                             <span className="text-sm text-gray-500 flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4 text-primary-600" /> Billable Days
                             </span>
-                            <span className="text-sm font-semibold text-primary-700 text-right">{activeDays} days</span>
+                            <span className="text-sm font-semibold text-primary-700 text-right">
+                                {leavesLoading ? <span className="inline-block h-4 w-12 bg-blue-100 rounded animate-pulse" /> : `${activeDays} days`}
+                            </span>
                         </div>
 
                         <div className="grid grid-cols-2 p-4 sm:px-6 hover:bg-gray-50/30 transition-colors">
@@ -99,13 +107,19 @@ export default function MessBill() {
 
                     {/* Calculation Footer */}
                     <div className="bg-gray-50/30 p-4 sm:px-6 text-center">
-                        <p className="text-xs text-gray-400 font-mono">
-                            ({daysInMonth} Total − {leaveCount} Leave) × ₹{messRate} = ₹{totalAmount.toLocaleString()}
-                        </p>
-                        {savings > 0 && (
-                            <p className="text-xs text-emerald-600 font-medium mt-1">
-                                You saved ₹{savings.toLocaleString()} this month on leaves
-                            </p>
+                        {leavesLoading ? (
+                            <div className="h-4 w-48 bg-gray-200 rounded animate-pulse mx-auto" />
+                        ) : (
+                            <>
+                                <p className="text-xs text-gray-400 font-mono">
+                                    ({daysInMonth} Total − {leaveCount} Leave) × ₹{messRate} = ₹{totalAmount.toLocaleString()}
+                                </p>
+                                {savings > 0 && (
+                                    <p className="text-xs text-emerald-600 font-medium mt-1">
+                                        You saved ₹{savings.toLocaleString()} this month on leaves
+                                    </p>
+                                )}
+                            </>
                         )}
                     </div>
                 </CardContent>
