@@ -78,12 +78,15 @@ export function LeaveProvider({ children }) {
             const d = record.leave_date;
             if (!leavesMap[d]) leavesMap[d] = [];
 
-            // ENSURE UNIQUENESS
-            if (!leavesMap[d].some(l => l.messNumber === record.mess_number)) {
+            const existing = leavesMap[d].find(l => l.messNumber === record.mess_number);
+            
+            if (!existing) {
                 leavesMap[d].push({
                     messNumber: record.mess_number,
                     isAdminGranted: record.is_admin_granted
                 });
+            } else if (record.is_admin_granted && !existing.isAdminGranted) {
+                existing.isAdminGranted = true;
             }
         });
         setLeaves(leavesMap);

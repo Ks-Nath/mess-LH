@@ -117,6 +117,27 @@ export default function ManageLeaves() {
             const activeStudents = students.filter(s => s.messStatus === 'Active');
             if (!window.confirm(`Grant leave for ALL ${activeStudents.length} active students for ${dates.length} day(s)?\n${formatDateKey(start)} \u2192 ${formatDateKey(end)}\n\nTotal records: ${activeStudents.length * dates.length}\nThese will NOT count towards the monthly quota.`)) return;
 
+            toast.loading(`Cleaning up overlapping leaves...`, { id: 'ltj-grant' });
+            
+            const messNumbers = activeStudents.map(s => s.messNumber);
+            const batchSizeForDelete = 200;
+            let delErrorAll = null;
+            for (let i = 0; i < messNumbers.length; i += batchSizeForDelete) {
+                const batchMsg = messNumbers.slice(i, i + batchSizeForDelete);
+                const { error } = await supabase
+                    .from('leaves')
+                    .delete()
+                    .in('leave_date', dates)
+                    .in('mess_number', batchMsg)
+                    .eq('hostel_id', user.hostelId);
+                if (error) { delErrorAll = error; break; }
+            }
+
+            if (delErrorAll) {
+                toast.error(`Cleanup failed: ${delErrorAll.message}`, { id: 'ltj-grant' });
+                return;
+            }
+
             toast.loading(`Granting ${activeStudents.length * dates.length} leave(s)...`, { id: 'ltj-grant' });
 
             // Build ALL records in one flat array: students × dates — SINGLE bulk insert
@@ -154,6 +175,20 @@ export default function ManageLeaves() {
             }
 
             if (!window.confirm(`Grant leave for ${selectedStudent.name} (${ltjMessNumber}) for ${dates.length} day(s)?\n${formatDateKey(start)} \u2192 ${formatDateKey(end)}\n\nThese will NOT count towards the monthly quota.`)) return;
+
+            toast.loading(`Cleaning up overlapping leaves...`, { id: 'ltj-grant' });
+            
+            const { error: delError } = await supabase
+                .from('leaves')
+                .delete()
+                .in('leave_date', dates)
+                .eq('mess_number', ltjMessNumber)
+                .eq('hostel_id', user.hostelId);
+
+            if (delError) {
+                toast.error(`Cleanup failed: ${delError.message}`, { id: 'ltj-grant' });
+                return;
+            }
 
             toast.loading(`Granting ${dates.length} leave(s)...`, { id: 'ltj-grant' });
 
