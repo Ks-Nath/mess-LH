@@ -45,7 +45,7 @@ export default function Establishment() {
                         messStatus: payload.new.mess_status,
                         messType: payload.new.mess_type,
                         joinDate: payload.new.join_date,
-                        legacyFines: payload.new.legacy_fines || 0
+                        legacyFines: Number(payload.new.legacy_fines) || 0
                     }));
                 }
             )
@@ -78,7 +78,8 @@ export default function Establishment() {
     const isEstPaid = currentEstPayment?.isPaid || false;
 
     // Determine effective join date (fallback if DB field is null)
-    const effectiveJoinDate = liveUser.joinDate 
+    // Priority: Live Data > Context Data > Earliest Payment > Current Month
+    const effectiveJoinDate = (liveUser.joinDate || user.joinDate)
         || (studentPayments.length > 0 
             ? studentPayments.map(p => p.month).sort()[0] 
             : new Date().toISOString().slice(0, 7));
