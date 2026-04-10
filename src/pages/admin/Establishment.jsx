@@ -8,7 +8,8 @@ import { useEstablishment } from '../../context/EstablishmentContext';
 import { useHostel } from '../../context/HostelContext';
 import toast, { Toaster } from 'react-hot-toast';
 
-const PASSCODE = import.meta.env.VITE_ESTABLISHMENT_PASSCODE;
+// Remove local constant in favor of database-backed passcode from context
+// const PASSCODE = import.meta.env.VITE_ESTABLISHMENT_PASSCODE;
 
 export default function AdminEstablishment() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -20,7 +21,7 @@ export default function AdminEstablishment() {
 
     // Data handling
     const { students, updateLegacyFine } = useStudents();
-    const { establishmentFee } = useHostel();
+    const { establishmentFee, establishmentPasscode } = useHostel();
     const {
         payments,
         markAsPaid,
@@ -46,7 +47,7 @@ export default function AdminEstablishment() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (passcode === PASSCODE) {
+        if (passcode === establishmentPasscode) {
             setIsAuthenticated(true);
             setError('');
         } else {

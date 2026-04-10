@@ -24,7 +24,7 @@ export function HostelProvider({ children }) {
             try {
                 const { data, error } = await supabase
                     .from('hostels')
-                    .select('name, mess_rate, cutoff_time, establishment_fee')
+                    .select('name, mess_rate, cutoff_time, establishment_fee, establishment_passcode')
                     .eq('id', user.hostelId)
                     .single();
 
@@ -40,6 +40,7 @@ export function HostelProvider({ children }) {
                         messRate: data.mess_rate,
                         cutoffTime: data.cutoff_time,
                         establishmentFee: data.establishment_fee ?? 800,
+                        establishmentPasscode: data.establishment_passcode || 'Code11@10',
                         hostelName: data.name,
                         loading: false,
                     });
