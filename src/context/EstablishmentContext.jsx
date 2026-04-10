@@ -12,7 +12,9 @@ function getMonthsInRange(startDateStr, endDate = new Date()) {
     const months = [];
     let current = new Date(start);
     while (current <= end) {
-        months.push(current.toISOString().slice(0, 7));
+        const year = current.getFullYear();
+        const month = String(current.getMonth() + 1).padStart(2, '0');
+        months.push(`${year}-${month}`);
         current.setMonth(current.getMonth() + 1);
     }
     return months;
