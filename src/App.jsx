@@ -12,6 +12,8 @@ import ManageLeaves from './pages/ManageLeaves';
 import AdminBills from './pages/AdminBills';
 import AdminSettings from './pages/AdminSettings';
 import VegList from './pages/admin/VegList';
+import Establishment from './pages/Establishment';
+import AdminEstablishment from './pages/admin/Establishment';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './layouts/DashboardLayout';
 import AdminLayout from './layouts/AdminLayout';
@@ -35,6 +37,7 @@ export default function App() {
                 <Route path="menu" element={<MessMenu />} />
                 <Route path="leave" element={<LeaveSelection />} />
                 <Route path="bill" element={<MessBill />} />
+                <Route path="establishment" element={<Establishment />} />
                 <Route path="profile" element={<Profile />} />
             </Route>
 
@@ -53,6 +56,7 @@ export default function App() {
                 <Route path="leaves" element={<ManageLeaves />} />
                 <Route path="veg-list" element={<VegList />} />
                 <Route path="bills" element={<AdminBills />} />
+                <Route path="establishment" element={<AdminEstablishment />} />
                 <Route path="settings" element={<AdminSettings />} />
             </Route>
         </Routes>

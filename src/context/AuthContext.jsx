@@ -116,6 +116,7 @@ export function AuthProvider({ children }) {
                 messStatus: validStudent.mess_status,
                 messType: validStudent.mess_type,
                 joinDate: validStudent.join_date,
+                legacyFines: validStudent.legacy_fines || 0,
                 hostelId: validStudent.hostel_id,
                 hasCustomPassword: !!(validStudent.password && validStudent.password.trim() !== '') // Helper flag
             };

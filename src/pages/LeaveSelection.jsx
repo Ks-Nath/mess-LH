@@ -12,7 +12,7 @@ import { useHostel } from '../context/HostelContext';
 
 export default function LeaveSelection() {
     const { user } = useAuth();
-    const { getLeavesByDate, addLeave, removeLeave, leaves, loading: leavesLoading } = useLeaves();
+    const { getLeavesByDate, addStudentLeavesBulk, removeStudentLeavesBulk, leaves, loading: leavesLoading } = useLeaves();
     const { cutoffTime } = useHostel();
 
     const [today, setToday] = useState(new Date());
@@ -178,13 +178,15 @@ export default function LeaveSelection() {
             }
 
             // Process Additions
-            for (const entry of toAdd) {
-                await addLeave(user.messNumber, entry.date, user.id, false);
+            if (toAdd.length > 0) {
+                const datesToAdd = toAdd.map(entry => entry.date);
+                await addStudentLeavesBulk(user.id, user.messNumber, datesToAdd);
             }
 
             // Process Removals
-            for (const entry of toRemove) {
-                await removeLeave(user.messNumber, entry.date);
+            if (toRemove.length > 0) {
+                const datesToRemove = toRemove.map(entry => entry.date);
+                await removeStudentLeavesBulk(user.messNumber, datesToRemove);
             }
 
             toast.success('Leave preferences saved successfully', { id: 'saving' });

@@ -9,7 +9,8 @@ import {
     Bell,
     FileSpreadsheet,
     Settings,
-    Leaf
+    Leaf,
+    Landmark
 } from 'lucide-react';
 import { Separator } from './ui/separator';
 
@@ -20,6 +21,7 @@ const navItems = [
     { to: '/admin/veg-list', label: 'Veg List', icon: Leaf },
     { to: '/admin/leaves', label: 'Leave Reports', icon: Bell },
     { to: '/admin/bills', label: 'Finance', icon: FileSpreadsheet },
+    { to: '/admin/establishment', label: 'Establishment', icon: Landmark },
     { to: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

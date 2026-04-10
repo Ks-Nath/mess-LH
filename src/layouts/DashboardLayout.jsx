@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import MobileNav from '../components/MobileNav';
-import { LayoutDashboard, UtensilsCrossed, CalendarOff, Receipt, User } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, CalendarOff, Receipt, User, Landmark } from 'lucide-react';
 
 export default function DashboardLayout() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -13,6 +13,7 @@ export default function DashboardLayout() {
         { to: '/dashboard/menu', label: 'Mess Menu', icon: UtensilsCrossed },
         { to: '/dashboard/leave', label: 'Leave', icon: CalendarOff },
         { to: '/dashboard/bill', label: 'Mess Bill', icon: Receipt },
+        { to: '/dashboard/establishment', label: 'Establishment', icon: Landmark },
         { to: '/dashboard/profile', label: 'Profile', icon: User },
     ];
 

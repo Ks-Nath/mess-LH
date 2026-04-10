@@ -12,29 +12,9 @@ export function LeaveProvider({ children }) {
     useEffect(() => {
         if (user?.hostelId) {
             fetchLeaves();
-
-            // ONLY Admins get real-time updates for leaves
-            if (user.role === 'admin') {
-                const subscription = supabase
-                    .channel('leaves-channel')
-                    .on(
-                        'postgres_changes',
-                        {
-                            event: '*',
-                            schema: 'public',
-                            table: 'leaves',
-                            filter: `hostel_id=eq.${user.hostelId}`
-                        },
-                        () => {
-                            fetchLeaves();
-                        }
-                    )
-                    .subscribe();
-
-                return () => {
-                    supabase.removeChannel(subscription);
-                };
-            }
+            // Realtime subscription removed to preserve Supabase quota.
+            // With 600 students, every single student leaf addition triggering a full
+            // refetch for the admin would exhaust limits rapidly.
         } else {
             setLeaves({});
             setLoading(false);
@@ -45,7 +25,7 @@ export function LeaveProvider({ children }) {
         if (!user?.hostelId) return;
         setLoading(true);
 
-        const PAGE_SIZE = 100;
+        const PAGE_SIZE = 1000; // Increased to 1000 for efficiency with 600 students
         let allData = [];
         let from = 0;
 
@@ -253,8 +233,87 @@ export function LeaveProvider({ children }) {
         return { success: true };
     };
 
+    const addStudentLeavesBulk = async (studentId, messNumber, datesToAdd) => {
+        if (!user?.hostelId || datesToAdd.length === 0) return { success: true };
+
+        // Optimistic update
+        setLeaves(prev => {
+            const next = { ...prev };
+            datesToAdd.forEach(date => {
+                const shapeDate = date.includes('T') ? date.split('T')[0] : date;
+                const current = next[shapeDate] || [];
+                if (!current.some(l => l.messNumber === messNumber)) {
+                    next[shapeDate] = [...current, { messNumber, isAdminGranted: false }];
+                }
+            });
+            return next;
+        });
+
+        const newRecords = datesToAdd.map(date => ({
+            student_id: studentId,
+            mess_number: messNumber,
+            leave_date: date.includes('T') ? date.split('T')[0] : date,
+            status: 'Approved',
+            hostel_id: user.hostelId,
+            is_admin_granted: false
+        }));
+
+        const { error } = await supabase.from('leaves').insert(newRecords);
+
+        if (error) {
+            console.error('Error adding bulk student leaves:', error);
+            fetchLeaves(); // Revert
+            return { success: false, error: error.message };
+        }
+        return { success: true };
+    };
+
+    const removeStudentLeavesBulk = async (messNumber, datesToRemove) => {
+        if (!user?.hostelId || datesToRemove.length === 0) return { success: true };
+
+        // Optimistic update
+        setLeaves(prev => {
+            const next = { ...prev };
+            datesToRemove.forEach(date => {
+                const shapeDate = date.includes('T') ? date.split('T')[0] : date;
+                if (next[shapeDate]) {
+                    next[shapeDate] = next[shapeDate].filter(l => l.messNumber !== messNumber);
+                }
+            });
+            return next;
+        });
+
+        const shapeDates = datesToRemove.map(d => d.includes('T') ? d.split('T')[0] : d);
+
+        const { error } = await supabase
+            .from('leaves')
+            .delete()
+            .eq('mess_number', messNumber)
+            .eq('hostel_id', user.hostelId)
+            .in('leave_date', shapeDates);
+
+        if (error) {
+            console.error('Error removing bulk student leaves:', error);
+            fetchLeaves(); // Revert
+            return { success: false, error: error.message };
+        }
+        return { success: true };
+    };
+
     return (
-        <LeaveContext.Provider value={{ leaves, loading, getLeavesByDate, addLeave, addBulkLeaves, removeLeave, removeBulkLeaves, isStudentOnLeave, refreshLeaves: fetchLeaves }}>
+        <LeaveContext.Provider value={{
+            leaves,
+            loading,
+            getLeavesByDate,
+            addLeave,
+            addBulkLeaves,
+            removeLeave,
+            removeBulkLeaves,
+            addStudentLeavesBulk,
+            removeStudentLeavesBulk,
+            isStudentOnLeave,
+            refreshLeaves: fetchLeaves
+        }}>
             {children}
         </LeaveContext.Provider>
     );

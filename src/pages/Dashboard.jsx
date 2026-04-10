@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UtensilsCrossed, CalendarOff, Receipt, ArrowRight } from 'lucide-react';
+import { UtensilsCrossed, CalendarOff, Receipt, Landmark, ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { useLeaves } from '../context/LeaveContext';
@@ -42,6 +42,15 @@ export default function Dashboard() {
             color: 'text-emerald-600',
             bg: 'bg-emerald-50',
             border: 'hover:border-emerald-200',
+        },
+        {
+            title: 'Establishment & Fees',
+            description: 'Track your monthly establishment fees and any pending fines.',
+            icon: Landmark,
+            path: '/dashboard/establishment',
+            color: 'text-indigo-600',
+            bg: 'bg-indigo-50',
+            border: 'hover:border-indigo-200',
         },
     ];
 

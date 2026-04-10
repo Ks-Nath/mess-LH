@@ -64,6 +64,7 @@ export function StudentProvider({ children }) {
                 messStatus: s.mess_status,
                 messType: s.mess_type,
                 joinDate: s.join_date,
+                legacyFines: s.legacy_fines || 0,
                 hostelId: s.hostel_id,
             }));
 
@@ -136,8 +137,32 @@ export function StudentProvider({ children }) {
         return students.find(s => s.messNumber === messNumber);
     };
 
+    const updateLegacyFine = async (studentId, amount) => {
+        if (!user?.hostelId) return { success: false, error: 'No hostel assigned' };
+
+        try {
+            const { error } = await supabase
+                .from('students')
+                .update({ legacy_fines: amount })
+                .eq('id', studentId)
+                .eq('hostel_id', user.hostelId);
+
+            if (error) throw error;
+
+            // Optimistic UI update
+            setStudents(prev => prev.map(s => 
+                s.id === studentId ? { ...s, legacyFines: amount } : s
+            ));
+            
+            return { success: true };
+        } catch (error) {
+            console.error('Error updating legacy fine:', error);
+            return { success: false, error: error.message };
+        }
+    };
+
     return (
-        <StudentContext.Provider value={{ students, loading, addStudent, removeStudent, getStudentByMessNumber }}>
+        <StudentContext.Provider value={{ students, loading, addStudent, removeStudent, getStudentByMessNumber, updateLegacyFine }}>
             {children}
         </StudentContext.Provider>
     );

@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext'
 import { HostelProvider } from './context/HostelContext'
 import { LeaveProvider } from './context/LeaveContext'
 import { StudentProvider } from './context/StudentContext'
+import { EstablishmentProvider } from './context/EstablishmentContext'
 import './index.css'
 import App from './App'
 
@@ -17,9 +18,11 @@ createRoot(document.getElementById('root')).render(
                 <HostelProvider>
                     <StudentProvider>
                         <LeaveProvider>
-                            <MenuProvider>
-                                <App />
-                            </MenuProvider>
+                            <EstablishmentProvider>
+                                <MenuProvider>
+                                    <App />
+                                </MenuProvider>
+                            </EstablishmentProvider>
                         </LeaveProvider>
                     </StudentProvider>
                 </HostelProvider>
@@ -27,3 +30,4 @@ createRoot(document.getElementById('root')).render(
         </BrowserRouter>
     </StrictMode>,
 )
+

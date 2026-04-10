@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
 import MobileNav from '../components/MobileNav';
-import { Bell, LayoutDashboard, UtensilsCrossed, Users, Menu, FileSpreadsheet, Settings, Leaf } from 'lucide-react';
+import { Bell, LayoutDashboard, UtensilsCrossed, Users, Menu, FileSpreadsheet, Settings, Leaf, Landmark } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 export default function AdminLayout() {
@@ -15,6 +15,7 @@ export default function AdminLayout() {
         { to: '/admin/veg-list', label: 'Veg List', icon: Leaf },
         { to: '/admin/leaves', label: 'Leave Reports', icon: Bell },
         { to: '/admin/bills', label: 'Finance', icon: FileSpreadsheet },
+        { to: '/admin/establishment', label: 'Establishment', icon: Landmark },
         { to: '/admin/settings', label: 'Settings', icon: Settings },
     ];
 

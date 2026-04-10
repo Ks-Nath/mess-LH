@@ -9,6 +9,7 @@ export function HostelProvider({ children }) {
     const [hostelSettings, setHostelSettings] = useState({
         messRate: 140, // Default fallback
         cutoffTime: 20, // Default fallback (8 PM)
+        establishmentFee: 800, // Default fallback
         hostelName: '',
         loading: true,
     });
@@ -23,7 +24,7 @@ export function HostelProvider({ children }) {
             try {
                 const { data, error } = await supabase
                     .from('hostels')
-                    .select('name, mess_rate, cutoff_time')
+                    .select('name, mess_rate, cutoff_time, establishment_fee')
                     .eq('id', user.hostelId)
                     .single();
 
@@ -38,6 +39,7 @@ export function HostelProvider({ children }) {
                     setHostelSettings({
                         messRate: data.mess_rate,
                         cutoffTime: data.cutoff_time,
+                        establishmentFee: data.establishment_fee ?? 800,
                         hostelName: data.name,
                         loading: false,
                     });
@@ -56,12 +58,16 @@ export function HostelProvider({ children }) {
         if (!user?.hostelId) return { success: false, error: 'No hostel ID found for user' };
 
         try {
-            const { error } = await supabase
-                .from('hostels')
-                .update({
+            const updateData = {
                     mess_rate: newSettings.messRate,
                     cutoff_time: newSettings.cutoffTime,
-                })
+                };
+            if (newSettings.establishmentFee !== undefined) {
+                    updateData.establishment_fee = newSettings.establishmentFee;
+                }
+            const { error } = await supabase
+                .from('hostels')
+                .update(updateData)
                 .eq('id', user.hostelId);
 
             if (error) throw error;
@@ -71,6 +77,7 @@ export function HostelProvider({ children }) {
                 ...prev,
                 messRate: newSettings.messRate,
                 cutoffTime: newSettings.cutoffTime,
+                ...(newSettings.establishmentFee !== undefined && { establishmentFee: newSettings.establishmentFee }),
             }));
 
             return { success: true };

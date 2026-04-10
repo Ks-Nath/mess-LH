@@ -7,10 +7,11 @@ import toast, { Toaster } from 'react-hot-toast';
 import { supabase } from '../lib/supabaseClient';
 
 export default function AdminSettings() {
-    const { messRate, cutoffTime, hostelName, updateSettings, loading } = useHostel();
+    const { messRate, cutoffTime, establishmentFee, hostelName, updateSettings, loading } = useHostel();
 
     const [rate, setRate] = useState(messRate);
     const [cutoff, setCutoff] = useState(cutoffTime);
+    const [estFee, setEstFee] = useState(establishmentFee);
     const [isSaving, setIsSaving] = useState(false);
     const [isBackingUp, setIsBackingUp] = useState(false);
 
@@ -18,7 +19,8 @@ export default function AdminSettings() {
     useEffect(() => {
         setRate(messRate);
         setCutoff(cutoffTime);
-    }, [messRate, cutoffTime]);
+        setEstFee(establishmentFee);
+    }, [messRate, cutoffTime, establishmentFee]);
 
     const handleSave = async (e) => {
         e.preventDefault();
@@ -27,6 +29,7 @@ export default function AdminSettings() {
         const result = await updateSettings({
             messRate: parseInt(rate),
             cutoffTime: parseInt(cutoff),
+            establishmentFee: parseInt(estFee),
         });
 
         if (result.success) {
@@ -156,6 +159,31 @@ export default function AdminSettings() {
                             <p className="text-xs text-gray-400">
                                 Students cannot apply for next-day leave after this time.
                             </p>
+                        </div>
+
+                        <div className="border-t border-gray-100" />
+
+                        {/* Establishment Fee */}
+                        <div className="space-y-3">
+                            <label className="block text-sm font-semibold text-gray-700">Monthly Establishment Fee</label>
+                            <div className="relative max-w-xs">
+                                {loading ? (
+                                    <div className="h-11 w-full bg-gray-100 rounded-xl animate-pulse" />
+                                ) : (
+                                    <>
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium text-sm pointer-events-none">₹</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={estFee}
+                                            onChange={(e) => setEstFee(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition-all"
+                                            required
+                                        />
+                                    </>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-400">Fixed monthly establishment fee per student.</p>
                         </div>
 
                         <div className="border-t border-gray-100" />
