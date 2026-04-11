@@ -28,7 +28,8 @@ export default function AdminEstablishment() {
         markAsUnpaid,
         getPaymentStatus,
         calculateFineForMonth,
-        calculateFineForStudent
+        calculateFineForStudent,
+        calculateFineForStudentInMonth
     } = useEstablishment();
 
     // Default to prior month since we usually collect fees after the month ends
@@ -97,13 +98,8 @@ export default function AdminEstablishment() {
             const isMessPaid = getPaymentStatus(student.id, selectedMonth, 'mess');
             const isEstPaid = getPaymentStatus(student.id, selectedMonth, 'establishment');
             
-            // Check if student was enrolled during the selected month
-            // We use .slice(0, 7) to compare only 'YYYY-MM'
-            const studentJoinMonth = student.joinDate ? student.joinDate.slice(0, 7) : null;
-            const isEnrolled = !studentJoinMonth || selectedMonth >= studentJoinMonth;
-            
-            const messFineThisMonth = (!isMessPaid && isEnrolled) ? monthFinePerType : 0;
-            const estFineThisMonth = (!isEstPaid && isEnrolled) ? monthFinePerType : 0;
+            const messFineThisMonth = calculateFineForStudentInMonth(student.id, student.joinDate, selectedMonth, 'mess');
+            const estFineThisMonth = calculateFineForStudentInMonth(student.id, student.joinDate, selectedMonth, 'establishment');
             const totalFines = calculateFineForStudent(student.id, student.joinDate, 'mess') + calculateFineForStudent(student.id, student.joinDate, 'establishment') + (student.legacyFines || 0);
 
             return {
@@ -311,12 +307,8 @@ export default function AdminEstablishment() {
                                 const isMessPaid = getPaymentStatus(student.id, selectedMonth, 'mess');
                                 const isEstPaid = getPaymentStatus(student.id, selectedMonth, 'establishment');
                                 
-                                // Precise Enrollment Check (Sync with Excel Export)
-                                const studentJoinMonth = student.joinDate ? student.joinDate.slice(0, 7) : null;
-                                const isEnrolled = !studentJoinMonth || selectedMonth >= studentJoinMonth;
-                                
-                                const messFineThisMonth = (!isMessPaid && isEnrolled) ? monthFinePerType : 0;
-                                const estFineThisMonth = (!isEstPaid && isEnrolled) ? monthFinePerType : 0;
+                                const messFineThisMonth = calculateFineForStudentInMonth(student.id, student.joinDate, selectedMonth, 'mess');
+                                const estFineThisMonth = calculateFineForStudentInMonth(student.id, student.joinDate, selectedMonth, 'establishment');
                                 const thisMonthFines = messFineThisMonth + estFineThisMonth;
 
                                 const cumulativeMessFine = calculateFineForStudent(student.id, student.joinDate, 'mess');
