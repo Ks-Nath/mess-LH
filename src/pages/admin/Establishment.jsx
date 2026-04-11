@@ -96,8 +96,14 @@ export default function AdminEstablishment() {
         const data = filteredStudents.map(student => {
             const isMessPaid = getPaymentStatus(student.id, selectedMonth, 'mess');
             const isEstPaid = getPaymentStatus(student.id, selectedMonth, 'establishment');
-            const messFineThisMonth = !isMessPaid ? monthFinePerType : 0;
-            const estFineThisMonth = !isEstPaid ? monthFinePerType : 0;
+            
+            // Check if student was enrolled during the selected month
+            // We use .slice(0, 7) to compare only 'YYYY-MM'
+            const studentJoinMonth = student.joinDate ? student.joinDate.slice(0, 7) : null;
+            const isEnrolled = !studentJoinMonth || selectedMonth >= studentJoinMonth;
+            
+            const messFineThisMonth = (!isMessPaid && isEnrolled) ? monthFinePerType : 0;
+            const estFineThisMonth = (!isEstPaid && isEnrolled) ? monthFinePerType : 0;
             const totalFines = calculateFineForStudent(student.id, student.joinDate, 'mess') + calculateFineForStudent(student.id, student.joinDate, 'establishment') + (student.legacyFines || 0);
 
             return {
@@ -304,7 +310,10 @@ export default function AdminEstablishment() {
                             {filteredStudents.map((student) => {
                                 const isMessPaid = getPaymentStatus(student.id, selectedMonth, 'mess');
                                 const isEstPaid = getPaymentStatus(student.id, selectedMonth, 'establishment');
-                                const isEnrolled = !student.joinDate || selectedMonth >= student.joinDate.slice(0, 7);
+                                
+                                // Precise Enrollment Check (Sync with Excel Export)
+                                const studentJoinMonth = student.joinDate ? student.joinDate.slice(0, 7) : null;
+                                const isEnrolled = !studentJoinMonth || selectedMonth >= studentJoinMonth;
                                 
                                 const messFineThisMonth = (!isMessPaid && isEnrolled) ? monthFinePerType : 0;
                                 const estFineThisMonth = (!isEstPaid && isEnrolled) ? monthFinePerType : 0;

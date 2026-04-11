@@ -29,7 +29,12 @@ function getMonthsLate(feeMonth, today = new Date()) {
     const yearDiff = today.getFullYear() - dYear;
     const monthDiff = today.getMonth() - (dMonth % 12);
     const totalMonths = yearDiff * 12 + monthDiff;
-    return today.getDate() > 10 ? totalMonths + 1 : Math.max(totalMonths, 1);
+    
+    // Safety check: totalMonths should be at least 0 if we passed the deadline check
+    const baseMonthsLate = Math.max(0, totalMonths);
+    
+    // If it's the following month and past the 10th, add that month too
+    return today.getDate() > 10 ? baseMonthsLate + 1 : Math.max(baseMonthsLate, 1);
 }
 
 export function EstablishmentProvider({ children }) {
