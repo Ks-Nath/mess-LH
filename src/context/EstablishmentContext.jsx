@@ -232,21 +232,6 @@ export function EstablishmentProvider({ children }) {
         return 100 * getMonthsLate(month, referenceDate);
     };
 
-    /**
-     * Calculates the fine for a specific student for a specific month.
-     * @returns {number} The fine amount (0 if not enrolled, already paid, or not late)
-     */
-    const calculateFineForStudentInMonth = (studentId, joinDate, month, feeType, referenceDate = new Date()) => {
-        if (!joinDate) return 0;
-        const studentJoinMonth = joinDate.slice(0, 7);
-        if (month < studentJoinMonth) return 0;
-        
-        const isPaid = getPaymentStatus(studentId, month, feeType);
-        if (isPaid) return 0;
-        
-        return 100 * getMonthsLate(month, referenceDate);
-    };
-
     // Memoize the context value to prevent unnecessary re-renders of consumers
     const contextValue = useMemo(() => ({
         payments,
@@ -257,7 +242,6 @@ export function EstablishmentProvider({ children }) {
         getStudentPayments,
         calculateFineForStudent,
         calculateFineForMonth,
-        calculateFineForStudentInMonth,
         fetchPayments,
     }), [payments, loading, paymentMap]);
 

@@ -28,8 +28,7 @@ export default function AdminEstablishment() {
         markAsUnpaid,
         getPaymentStatus,
         calculateFineForMonth,
-        calculateFineForStudent,
-        calculateFineForStudentInMonth
+        calculateFineForStudent
     } = useEstablishment();
 
     // Default to prior month since we usually collect fees after the month ends
@@ -91,25 +90,48 @@ export default function AdminEstablishment() {
         s.messNumber.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Shared logic helper to ensure Dashboard and Excel always match perfectly
+    const getStudentStatusForMonth = (student, month = selectedMonth) => {
+        const isMessPaid = getPaymentStatus(student.id, month, 'mess');
+        const isEstPaid = getPaymentStatus(student.id, month, 'establishment');
+        
+        // Stricter Enrollment Check: Student must have a join date <= report month
+        const studentJoinMonth = student.joinDate ? student.joinDate.slice(0, 7) : null;
+        const isEnrolled = !!studentJoinMonth && month >= studentJoinMonth;
+        
+        const finePerType = calculateFineForMonth(month);
+        const messFine = (isEnrolled && !isMessPaid) ? finePerType : 0;
+        const estFine = (isEnrolled && !isEstPaid) ? finePerType : 0;
+        
+        const cumulativeFine = calculateFineForStudent(student.id, student.joinDate, 'mess') + 
+                              calculateFineForStudent(student.id, student.joinDate, 'establishment') + 
+                              (student.legacyFines || 0);
+        
+        return {
+            isMessPaid,
+            isEstPaid,
+            isEnrolled,
+            messFine,
+            estFine,
+            monthFines: messFine + estFine,
+            totalFines: cumulativeFine
+        };
+    };
+
     const handleExportExcel = () => {
         const monthString = new Date(selectedMonth + '-01').toLocaleString('default', { month: 'short', year: 'numeric' });
         
         const data = filteredStudents.map(student => {
-            const isMessPaid = getPaymentStatus(student.id, selectedMonth, 'mess');
-            const isEstPaid = getPaymentStatus(student.id, selectedMonth, 'establishment');
-            
-            const messFineThisMonth = calculateFineForStudentInMonth(student.id, student.joinDate, selectedMonth, 'mess');
-            const estFineThisMonth = calculateFineForStudentInMonth(student.id, student.joinDate, selectedMonth, 'establishment');
-            const totalFines = calculateFineForStudent(student.id, student.joinDate, 'mess') + calculateFineForStudent(student.id, student.joinDate, 'establishment') + (student.legacyFines || 0);
+            const status = getStudentStatusForMonth(student);
 
             return {
                 "Mess No": student.messNumber,
                 "Student Name": student.name,
-                "Mess Fee": isMessPaid ? 'PAID' : 'UNPAID',
-                "Establishment Fee": isEstPaid ? 'PAID' : 'UNPAID',
+                "Mess Fee": status.isMessPaid ? 'PAID' : 'UNPAID',
+                "Establishment Fee": status.isEstPaid ? 'PAID' : 'UNPAID',
                 "Legacy Fines": student.legacyFines || 0,
-                "Month Fines": messFineThisMonth + estFineThisMonth,
-                "Total Fines": totalFines
+                "Month Fines": status.monthFines,
+                "Total Fines": status.totalFines
             };
         });
 
@@ -304,16 +326,7 @@ export default function AdminEstablishment() {
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
                             {filteredStudents.map((student) => {
-                                const isMessPaid = getPaymentStatus(student.id, selectedMonth, 'mess');
-                                const isEstPaid = getPaymentStatus(student.id, selectedMonth, 'establishment');
-                                
-                                const messFineThisMonth = calculateFineForStudentInMonth(student.id, student.joinDate, selectedMonth, 'mess');
-                                const estFineThisMonth = calculateFineForStudentInMonth(student.id, student.joinDate, selectedMonth, 'establishment');
-                                const thisMonthFines = messFineThisMonth + estFineThisMonth;
-
-                                const cumulativeMessFine = calculateFineForStudent(student.id, student.joinDate, 'mess');
-                                const cumulativeEstFine = calculateFineForStudent(student.id, student.joinDate, 'establishment');
-                                const totalFines = cumulativeMessFine + cumulativeEstFine + (student.legacyFines || 0);
+                                const status = getStudentStatusForMonth(student);
 
                                 return (
                                     <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
@@ -323,28 +336,28 @@ export default function AdminEstablishment() {
                                         {/* Mess Fee Toggle */}
                                         <td className="px-6 py-4 text-center">
                                             <button
-                                                onClick={() => handleTogglePayment(student.id, student.messNumber, 'mess', isMessPaid)}
+                                                onClick={() => handleTogglePayment(student.id, student.messNumber, 'mess', status.isMessPaid)}
                                                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                                                    isMessPaid 
+                                                    status.isMessPaid 
                                                     ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
                                                     : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
                                                 }`}
                                             >
-                                                {isMessPaid ? 'PAID' : 'UNPAID'}
+                                                {status.isMessPaid ? 'PAID' : 'UNPAID'}
                                             </button>
                                         </td>
-
+                                        
                                         {/* Establishment Fee Toggle */}
                                         <td className="px-6 py-4 text-center">
                                             <button
-                                                onClick={() => handleTogglePayment(student.id, student.messNumber, 'establishment', isEstPaid)}
+                                                onClick={() => handleTogglePayment(student.id, student.messNumber, 'establishment', status.isEstPaid)}
                                                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                                                    isEstPaid 
+                                                    status.isEstPaid 
                                                     ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
                                                     : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
                                                 }`}
                                             >
-                                                {isEstPaid ? 'PAID' : 'UNPAID'}
+                                                {status.isEstPaid ? 'PAID' : 'UNPAID'}
                                             </button>
                                         </td>
 
@@ -379,8 +392,8 @@ export default function AdminEstablishment() {
 
                                         {/* Fines for selected month */}
                                         <td className="px-6 py-4 text-right">
-                                            {thisMonthFines > 0 ? (
-                                                <span className="text-red-600 font-bold">₹{thisMonthFines}</span>
+                                            {status.monthFines > 0 ? (
+                                                <span className="text-red-600 font-bold">₹{status.monthFines.toLocaleString()}</span>
                                             ) : (
                                                 <span className="text-gray-400">—</span>
                                             )}
@@ -388,8 +401,8 @@ export default function AdminEstablishment() {
 
                                         {/* Total Cumulative Fines */}
                                         <td className="px-6 py-4 text-right">
-                                            {totalFines > 0 ? (
-                                                <span className="text-amber-600 font-bold">₹{totalFines}</span>
+                                            {status.totalFines > 0 ? (
+                                                <span className="text-amber-600 font-bold">₹{status.totalFines.toLocaleString()}</span>
                                             ) : (
                                                 <span className="text-gray-400">—</span>
                                             )}
