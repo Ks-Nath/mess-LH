@@ -89,6 +89,9 @@ export function LeaveProvider({ children }) {
         if (!user?.hostelId) return { success: false, error: 'No hostel assigned' };
         const shapeDate = date.includes('T') ? date.split('T')[0] : date;
 
+        const isTrueAdminGrant = isAdminGranted === true;
+        const dbStatus = isAdminGranted === 'OVERRIDE' ? 'Admin_Override' : 'Approved';
+
         // CHECK IF ALREADY EXISTS (Local Check)
         if (leaves[shapeDate]?.some(l => l.messNumber === messNumber)) {
             return { success: true, alreadyExists: true };
@@ -100,7 +103,7 @@ export function LeaveProvider({ children }) {
             if (current.some(l => l.messNumber === messNumber)) return prev;
             return {
                 ...prev,
-                [shapeDate]: [...current, { messNumber, isAdminGranted }]
+                [shapeDate]: [...current, { messNumber, isAdminGranted: isTrueAdminGrant }]
             };
         });
 
@@ -132,9 +135,9 @@ export function LeaveProvider({ children }) {
             student_id: sid,
             mess_number: messNumber,
             leave_date: shapeDate,
-            status: 'Approved',
+            status: dbStatus,
             hostel_id: user.hostelId,
-            is_admin_granted: isAdminGranted
+            is_admin_granted: isTrueAdminGrant
         }]);
 
         if (error) {
@@ -150,13 +153,16 @@ export function LeaveProvider({ children }) {
         if (!user?.hostelId) return { success: false, error: 'No hostel assigned' };
         const shapeDate = date.includes('T') ? date.split('T')[0] : date;
 
+        const isTrueAdminGrant = isAdminGranted === true;
+        const dbStatus = isAdminGranted === 'OVERRIDE' ? 'Admin_Override' : 'Approved';
+
         const newEntries = studentsList.map(s => ({
             student_id: s.id,
             mess_number: s.messNumber,
             leave_date: shapeDate,
-            status: 'Approved',
+            status: dbStatus,
             hostel_id: user.hostelId,
-            is_admin_granted: isAdminGranted
+            is_admin_granted: isTrueAdminGrant
         }));
 
         // Optimistic update
@@ -165,7 +171,7 @@ export function LeaveProvider({ children }) {
             const updated = [...current];
             newEntries.forEach(entry => {
                 if (!updated.some(l => l.messNumber === entry.mess_number)) {
-                    updated.push({ messNumber: entry.mess_number, isAdminGranted });
+                    updated.push({ messNumber: entry.mess_number, isAdminGranted: isTrueAdminGrant });
                 }
             });
             return { ...prev, [shapeDate]: updated };

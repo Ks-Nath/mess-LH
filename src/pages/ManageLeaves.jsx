@@ -55,7 +55,7 @@ export default function ManageLeaves() {
             if (!window.confirm(`Are you sure you want to GRANT leave for ALL ${activeStudents.length} active students for ${dateKey}?`)) return;
 
             toast.loading('Granting leaves...', { id: 'bulk-grant' });
-            const { success, error } = await addBulkLeaves(activeStudents, dateKey, true);
+            const { success, error } = await addBulkLeaves(activeStudents, dateKey, 'OVERRIDE');
 
             if (success) {
                 toast.success(`Leave granted for all ${activeStudents.length} students`, { id: 'bulk-grant' });
@@ -68,7 +68,7 @@ export default function ManageLeaves() {
                 toast.error('Student not found');
                 return;
             }
-            const { success, error } = await addLeave(overrideMessNumber, dateKey, selectedStudent.id, true);
+            const { success, error } = await addLeave(overrideMessNumber, dateKey, selectedStudent.id, 'OVERRIDE');
             if (success) {
                 toast.success(`Leave granted for ${overrideMessNumber} on ${dateKey}`);
             } else {
