@@ -7,6 +7,7 @@ import { cn } from '../../lib/utils';
 import { useStudents } from '../../context/StudentContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
+import { getISTDateString } from '../../lib/utils';
 
 export default function VegList() {
     const { students } = useStudents();
@@ -22,7 +23,7 @@ export default function VegList() {
     const [manageSearch, setManageSearch] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
 
-    const getTodayStr = () => new Date().toISOString().split('T')[0];
+    const getTodayStr = () => getISTDateString();
 
     useEffect(() => {
         if (user?.hostelId) {

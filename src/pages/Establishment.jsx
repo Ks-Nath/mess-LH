@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEstablishment } from '../context/EstablishmentContext';
 import { useHostel } from '../context/HostelContext';
 import { useState, useEffect } from 'react';
+import { getISTDate, getISTDateString } from '../lib/utils';
 import { supabase } from '../lib/supabaseClient';
 
 export default function Establishment() {
@@ -13,9 +14,12 @@ export default function Establishment() {
 
     // Default to prior month since we usually collect fees after the month ends
     const [selectedMonth] = useState(() => {
-        const d = new Date();
+        const d = getISTDate();
         d.setMonth(d.getMonth() - 1);
-        return d.toISOString().slice(0, 7);
+        
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        return `${year}-${month}`;
     });
 
     // Real-time student data sync (to catch fine updates from admin instantly)
@@ -81,7 +85,7 @@ export default function Establishment() {
     const effectiveJoinDate = liveUser.joinDate 
         || (studentPayments.length > 0 
             ? studentPayments.map(p => p.month).sort()[0] 
-            : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
+            : getISTDateString().slice(0, 7));
 
     // Fines calculate across ALL history dynamically based on payment status + dates
     const totalMessFine = calculateFineForStudent(liveUser.id, effectiveJoinDate, 'mess');
@@ -89,7 +93,7 @@ export default function Establishment() {
     const overallFine = totalMessFine + totalEstFine + (liveUser.legacyFines || 0);
 
     // Helper to get all months between two dates in YYYY-MM format.
-    const getMonthsInRangeLocal = (startDateStr, endDate = new Date()) => {
+    const getMonthsInRangeLocal = (startDateStr, endDate = getISTDate()) => {
         if (!startDateStr) return [];
         const [sYear, sMonth] = startDateStr.slice(0, 7).split('-').map(Number);
         const start = new Date(sYear, sMonth - 1, 1);

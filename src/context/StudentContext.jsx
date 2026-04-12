@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from './AuthContext';
+import { getISTDateString } from '../lib/utils';
 
 const StudentContext = createContext(null);
 
@@ -94,7 +95,7 @@ export function StudentProvider({ children }) {
                     room_no: newStudent.roomNo,
                     mess_status: newStudent.messStatus || 'Active',
                     mess_type: newStudent.messType || 'Veg',
-                    join_date: newStudent.joinDate || new Date().toISOString().slice(0, 10),
+                    join_date: newStudent.joinDate || getISTDateString(),
                     hostel_id: user.hostelId,
                 }])
                 .select()

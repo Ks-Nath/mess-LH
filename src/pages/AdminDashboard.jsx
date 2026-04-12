@@ -4,6 +4,7 @@ import { Badge } from '../components/ui/badge';
 import { Users, AlertCircle, UtensilsCrossed, Loader2 } from 'lucide-react';
 import { useStudents } from '../context/StudentContext';
 import { useLeaves } from '../context/LeaveContext';
+import { getISTDateString } from '../lib/utils';
 
 export default function AdminDashboard() {
     const { students, loading: studentsLoading } = useStudents();
@@ -12,9 +13,8 @@ export default function AdminDashboard() {
     const isLoading = studentsLoading || leavesLoading;
 
     // Calculate stats
-    // Use local date for "Today" because leaves are stored as YYYY-MM-DD (local)
-    // toLocaleDateString('en-CA') returns YYYY-MM-DD in local timezone
-    const today = new Date().toLocaleDateString('en-CA');
+    // toLocaleDateString('en-CA') replaced with IST utility
+    const today = getISTDateString();
     const totalStudents = students.length;
     const leavesToday = (getLeavesByDate(today) || []).length;
     const activeToday = totalStudents - leavesToday;

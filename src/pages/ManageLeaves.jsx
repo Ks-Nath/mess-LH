@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLeaves } from '../context/LeaveContext';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { getISTDate, getISTDateString } from '../lib/utils';
 import { useStudents } from '../context/StudentContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -14,20 +15,26 @@ export default function ManageLeaves() {
     const { students, loading: studentsLoading } = useStudents();
     
     const isLoading = leavesLoading || studentsLoading;
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(getISTDate());
 
     // Manual Override State
     const [overrideMessNumber, setOverrideMessNumber] = useState('');
-    const [overrideDate, setOverrideDate] = useState(new Date());
+    const [overrideDate, setOverrideDate] = useState(getISTDate());
 
     // Leave Till Join State
     const [ltjMessNumber, setLtjMessNumber] = useState('');
-    const [ltjStartDate, setLtjStartDate] = useState(new Date());
-    const [ltjEndDate, setLtjEndDate] = useState(new Date());
+    const [ltjStartDate, setLtjStartDate] = useState(getISTDate());
+    const [ltjEndDate, setLtjEndDate] = useState(getISTDate());
 
     // Helper to format date as YYYY-MM-DD for context
     const formatDateKey = (date) => {
-        return date.toISOString().split('T')[0];
+        // Fallback to getISTDateString logic if input is not a Date object
+        if (!(date instanceof Date)) return getISTDateString();
+        
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
     const leavesForDate = getLeavesByDate(formatDateKey(selectedDate));
@@ -48,7 +55,7 @@ export default function ManageLeaves() {
             if (!window.confirm(`Are you sure you want to GRANT leave for ALL ${activeStudents.length} active students for ${dateKey}?`)) return;
 
             toast.loading('Granting leaves...', { id: 'bulk-grant' });
-            const { success, error } = await addBulkLeaves(activeStudents, dateKey, false);
+            const { success, error } = await addBulkLeaves(activeStudents, dateKey, true);
 
             if (success) {
                 toast.success(`Leave granted for all ${activeStudents.length} students`, { id: 'bulk-grant' });
@@ -61,8 +68,12 @@ export default function ManageLeaves() {
                 toast.error('Student not found');
                 return;
             }
-            await addLeave(overrideMessNumber, dateKey, selectedStudent.id, false);
-            toast.success(`Leave granted for ${overrideMessNumber} on ${dateKey}`);
+            const { success, error } = await addLeave(overrideMessNumber, dateKey, selectedStudent.id, true);
+            if (success) {
+                toast.success(`Leave granted for ${overrideMessNumber} on ${dateKey}`);
+            } else {
+                toast.error(`Failed to grant leave: ${error}`);
+            }
         }
         setOverrideMessNumber('');
     };

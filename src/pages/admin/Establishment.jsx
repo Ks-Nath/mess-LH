@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/button';
 import { useStudents } from '../../context/StudentContext';
 import { useEstablishment } from '../../context/EstablishmentContext';
 import { useHostel } from '../../context/HostelContext';
+import { getISTDate, getISTDateString } from '../../lib/utils';
 import toast, { Toaster } from 'react-hot-toast';
 
 // Remove local constant in favor of database-backed passcode from context
@@ -33,9 +34,12 @@ export default function AdminEstablishment() {
 
     // Default to prior month since we usually collect fees after the month ends
     const [selectedMonth, setSelectedMonth] = useState(() => {
-        const d = new Date();
+        const d = getISTDate();
         d.setMonth(d.getMonth() - 1);
-        return d.toISOString().slice(0, 7);
+        
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        return `${year}-${month}`;
     });
     const [searchQuery, setSearchQuery] = useState('');
 

@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from './AuthContext';
+import { getISTDate, getISTDateString } from '../lib/utils';
 
 const EstablishmentContext = createContext(null);
 
-function getMonthsInRange(startDateStr, endDate = new Date()) {
+function getMonthsInRange(startDateStr, endDate = getISTDate()) {
     if (!startDateStr) return [];
     const [sYear, sMonth] = startDateStr.split('-').map(Number);
     const start = new Date(sYear, sMonth - 1, 1);
@@ -20,7 +21,7 @@ function getMonthsInRange(startDateStr, endDate = new Date()) {
     return months;
 }
 
-function getMonthsLate(feeMonth, today = new Date()) {
+function getMonthsLate(feeMonth, today = getISTDate()) {
     const [fYear, fMonth] = feeMonth.split('-').map(Number);
     const dMonth = fMonth;
     const dYear = fMonth === 12 ? fYear + 1 : fYear;
@@ -103,7 +104,7 @@ export function EstablishmentProvider({ children }) {
     const markAsPaid = async (studentId, messNumber, month, feeType) => {
         if (!user?.hostelId) return { success: false, error: 'No hostel' };
 
-        const paidDate = new Date().toISOString().slice(0, 10);
+        const paidDate = getISTDateString();
 
         // Optimistic update
         setPayments(prev => {
@@ -214,7 +215,7 @@ export function EstablishmentProvider({ children }) {
      * Calculate total fine for a student for a given fee type.
      * Iterates from joinDate to referenceDate to include arrears.
      */
-    const calculateFineForStudent = (studentId, joinDate, feeType, referenceDate = new Date()) => {
+    const calculateFineForStudent = (studentId, joinDate, feeType, referenceDate = getISTDate()) => {
         if (!joinDate) return 0;
         
         const months = getMonthsInRange(joinDate, referenceDate);
@@ -228,7 +229,7 @@ export function EstablishmentProvider({ children }) {
         return totalFine;
     };
 
-    const calculateFineForMonth = (month, referenceDate = new Date()) => {
+    const calculateFineForMonth = (month, referenceDate = getISTDate()) => {
         return 100 * getMonthsLate(month, referenceDate);
     };
 

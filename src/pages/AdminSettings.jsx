@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Save, Settings, DatabaseBackup, Download } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { supabase } from '../lib/supabaseClient';
+import { getISTDate, getISTDateString } from '../lib/utils';
 
 export default function AdminSettings() {
     const { messRate, cutoffTime, establishmentFee, hostelName, updateSettings, loading } = useHostel();
@@ -50,7 +51,7 @@ export default function AdminSettings() {
             // Fetch data from main tables
             const tables = ['students', 'leaves', 'weekly_menu'];
             const backupData = {
-                timestamp: new Date().toISOString(),
+                timestamp: getISTDate().toISOString(),
                 hostelName,
                 data: {}
             };
@@ -66,7 +67,7 @@ export default function AdminSettings() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `mess_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `mess_backup_${getISTDateString()}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

@@ -3,7 +3,7 @@ import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Search, MoreHorizontal, Users, UserPlus, X, Loader2, Trash2 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, getISTDate, getISTDateString } from '../lib/utils';
 import { useStudents } from '../context/StudentContext';
 import { useLeaves } from '../context/LeaveContext';
 
@@ -13,7 +13,7 @@ export default function ManageStudents() {
 
     const loading = studentsLoading || leavesLoading;
 
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(getISTDate());
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState('All');
 
@@ -23,7 +23,13 @@ export default function ManageStudents() {
     const [addError, setAddError] = useState('');
     const [isAdding, setIsAdding] = useState(false);
 
-    const formatDateKey = (date) => date.toISOString().split('T')[0];
+    const formatDateKey = (date) => {
+        if (!(date instanceof Date)) return getISTDateString();
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
 
     // Derive students with dynamic status
     const studentsWithStatus = students.map(student => {

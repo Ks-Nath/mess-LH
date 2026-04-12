@@ -5,7 +5,7 @@ import { useHostel } from '../context/HostelContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Download, Calendar, CalendarRange, FileSpreadsheet } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, getISTDate, getISTDateString } from '../lib/utils';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
@@ -17,9 +17,9 @@ export default function AdminBills() {
 
     // Mode: 'month' or 'range'
     const [mode, setMode] = useState('month');
-    const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
-    const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
-    const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
+    const [selectedMonth, setSelectedMonth] = useState(getISTDateString().slice(0, 7));
+    const [startDate, setStartDate] = useState(getISTDateString());
+    const [endDate, setEndDate] = useState(getISTDateString());
 
     // Compute the date list based on mode
     const getDateRange = () => {

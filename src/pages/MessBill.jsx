@@ -5,6 +5,7 @@ import { Receipt, Calendar, Minus, CheckCircle2, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Separator } from '../components/ui/separator';
+import { getISTDate } from '../lib/utils';
 
 export default function MessBill() {
     const { user } = useAuth();
@@ -13,8 +14,8 @@ export default function MessBill() {
 
     if (!user) return <div className="p-8 text-center">Please log in to view bill.</div>;
 
-    // Calculate bill for current month
-    const now = new Date();
+    // Calculate bill for current month in IST
+    const now = getISTDate();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // 0-indexed
 

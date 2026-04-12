@@ -9,20 +9,21 @@ import { Badge } from '../components/ui/badge';
 import { useLeaves } from '../context/LeaveContext';
 import { useAuth } from '../context/AuthContext';
 import { useHostel } from '../context/HostelContext';
+import { getISTDate } from '../lib/utils';
 
 export default function LeaveSelection() {
     const { user } = useAuth();
     const { getLeavesByDate, addStudentLeavesBulk, removeStudentLeavesBulk, leaves, loading: leavesLoading } = useLeaves();
     const { cutoffTime } = useHostel();
 
-    const [today, setToday] = useState(new Date());
+    const [today, setToday] = useState(getISTDate());
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
 
     // Update "today" every minute to ensure cutoff logic is always fresh
     useEffect(() => {
         const interval = setInterval(() => {
-            setToday(new Date());
+            setToday(getISTDate());
         }, 60000); // 1 minute
         return () => clearInterval(interval);
     }, []);
@@ -81,7 +82,7 @@ export default function LeaveSelection() {
         if (!isRemoving) {
             // Cutoff check
             const dateObj = new Date(dateStr + 'T00:00:00');
-            const now = new Date();
+            const now = getISTDate();
             const tomorrow = new Date(now);
             tomorrow.setDate(tomorrow.getDate() + 1);
             tomorrow.setHours(0, 0, 0, 0);
@@ -164,7 +165,7 @@ export default function LeaveSelection() {
 
         try {
             // Final validation check for additions (Real-time cutoff enforcement)
-            const now = new Date();
+            const now = getISTDate();
             const tomorrow = new Date(now);
             tomorrow.setDate(tomorrow.getDate() + 1);
             tomorrow.setHours(0, 0, 0, 0);

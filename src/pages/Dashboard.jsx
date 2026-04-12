@@ -4,6 +4,7 @@ import { UtensilsCrossed, CalendarOff, Receipt, Landmark, ArrowRight } from 'luc
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { useLeaves } from '../context/LeaveContext';
+import { getISTDateString } from '../lib/utils';
 
 export default function Dashboard() {
     const { user } = useAuth();
@@ -11,7 +12,7 @@ export default function Dashboard() {
     const navigate = useNavigate();
     
     // Today's date (YYYY-MM-DD)
-    const todayStr = new Date().toLocaleDateString('en-CA');
+    const todayStr = getISTDateString();
     const onLeaveToday = isStudentOnLeave(user?.messNumber, todayStr);
 
 
