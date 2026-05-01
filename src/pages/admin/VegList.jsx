@@ -156,7 +156,9 @@ export default function VegList() {
     const filteredOutList = vegStudents.filter(s => {
         return s.name.toLowerCase().includes(search.toLowerCase()) || 
                s.messNumber.toLowerCase().includes(search.toLowerCase());
-    });
+    }).sort((a, b) => 
+        String(a.messNumber || '').localeCompare(String(b.messNumber || ''), undefined, { numeric: true, sensitivity: 'base' })
+    );
     
     const manageStudentResult = manageSearch.trim() === '' ? null : students.find(s => s.messNumber.toUpperCase() === manageSearch.trim().toUpperCase());
 
