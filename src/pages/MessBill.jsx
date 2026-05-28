@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLeaves } from '../context/LeaveContext';
 import { useHostel } from '../context/HostelContext';
@@ -12,20 +13,19 @@ export default function MessBill() {
     const { getLeavesByDate, loading: leavesLoading } = useLeaves();
     const { messRate } = useHostel();
 
+    const now = getISTDate();
+    const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+    const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+
     if (!user) return <div className="p-8 text-center">Please log in to view bill.</div>;
 
-    // Calculate bill for current month in IST
-    const now = getISTDate();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-indexed
-
-    // Get total days in current month
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    // Get total days in selected month
+    const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
 
     // Calculate leaves taken this month
     let leaveCount = 0;
     for (let day = 1; day <= daysInMonth; day++) {
-        const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dateKey = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const leavesOnDay = getLeavesByDate(dateKey) || [];
         // leavesOnDay is now [{ messNumber, isAdminGranted }, ...]
         if (leavesOnDay.some(l => l.messNumber === user.messNumber)) {
@@ -37,7 +37,16 @@ export default function MessBill() {
     const totalAmount = activeDays * messRate;
     const savings = leaveCount * messRate;
 
-    const monthName = now.toLocaleString('default', { month: 'long' });
+    const monthName = new Date(selectedYear, selectedMonth, 1).toLocaleString('default', { month: 'long' });
+
+    // Generate month options
+    const months = Array.from({ length: 12 }, (_, i) => {
+        return new Date(2000, i, 1).toLocaleString('default', { month: 'long' });
+    });
+
+    // Generate year options (e.g., from 5 years ago to current year)
+    const currentYearNum = now.getFullYear();
+    const years = Array.from({ length: 5 }, (_, i) => currentYearNum - i);
 
     return (
         <div className="space-y-8 animate-fade-in mx-auto max-w-4xl">
@@ -45,7 +54,27 @@ export default function MessBill() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">My Monthly Bill</h1>
-                    <p className="text-gray-500 text-lg">Billing details for {monthName} {currentYear}</p>
+                    <p className="text-gray-500 text-lg">Billing details for {monthName} {selectedYear}</p>
+                </div>
+                <div className="flex gap-2">
+                    <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                    >
+                        {months.map((m, i) => (
+                            <option key={i} value={i}>{m}</option>
+                        ))}
+                    </select>
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                    >
+                        {years.map(y => (
+                            <option key={y} value={y}>{y}</option>
+                        ))}
+                    </select>
                 </div>
                 {/* Download PDF button removed */}
             </div>
@@ -65,7 +94,7 @@ export default function MessBill() {
                             <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
                                 Unpaid
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">Due by 5th of next month</p>
+                            <p className="text-xs text-gray-500 mt-1">Due by 10th of next month</p>
                         </div>
                     </div>
                 </CardHeader>
