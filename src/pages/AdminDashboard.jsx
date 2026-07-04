@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Users, AlertCircle, UtensilsCrossed, Loader2 } from 'lucide-react';
+import { Users, AlertCircle, UtensilsCrossed, Loader2, Leaf, ChefHat } from 'lucide-react';
 import { useStudents } from '../context/StudentContext';
 import { useLeaves } from '../context/LeaveContext';
 import { getISTDateString } from '../lib/utils';
@@ -47,6 +47,37 @@ export default function AdminDashboard() {
         },
     ];
 
+    const vegCount = students.filter(s => s.messType === 'Veg').length;
+    const nonVegCount = students.filter(s => s.messType === 'Non-Veg').length;
+    const vegCCount = students.filter(s => s.messType === 'Veg+C').length;
+
+    const mealStats = [
+        {
+            label: 'Veg Students',
+            value: vegCount,
+            desc: 'Pure Vegetarian Plan',
+            icon: Leaf,
+            color: 'text-green-600',
+            bg: 'bg-green-50'
+        },
+        {
+            label: 'Non-Veg Students',
+            value: nonVegCount,
+            desc: 'Regular Meal Plan',
+            icon: UtensilsCrossed,
+            color: 'text-red-600',
+            bg: 'bg-red-50'
+        },
+        {
+            label: 'Veg + Chicken',
+            value: vegCCount,
+            desc: 'Veg + Chicken Plan',
+            icon: ChefHat,
+            color: 'text-amber-600',
+            bg: 'bg-amber-50'
+        }
+    ];
+
     return (
         <div className="space-y-8 animate-fade-in">
             <div>
@@ -57,6 +88,39 @@ export default function AdminDashboard() {
             {/* Stats Grid - Simplified to 3 Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {stats.map((stat) => (
+                    <Card key={stat.label} className="border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <CardContent className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center`}>
+                                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">{stat.label}</p>
+                                {isLoading ? (
+                                    <div className="h-9 w-20 bg-gray-200 rounded-md animate-pulse mt-1 mb-1" />
+                                ) : (
+                                    <h3 className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</h3>
+                                )}
+                                {isLoading ? (
+                                    <div className="h-4 w-32 bg-gray-100 rounded animate-pulse mt-1" />
+                                ) : (
+                                    <p className="text-xs text-gray-400 mt-1">{stat.desc}</p>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Meal Preference breakdown */}
+            <div className="pt-4 border-t border-gray-100">
+                <h2 className="text-xl font-bold text-gray-900 tracking-tight">Meal Type Breakdown</h2>
+                <p className="text-gray-500 mt-1">Breakdown of registered student meal preferences.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {mealStats.map((stat) => (
                     <Card key={stat.label} className="border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between mb-4">

@@ -162,8 +162,29 @@ export function StudentProvider({ children }) {
         }
     };
 
+    const updateStudentMessType = async (messNumber, messType) => {
+        if (!user?.hostelId) return { success: false, error: 'No hostel assigned' };
+
+        try {
+            const { error } = await supabase
+                .from('students')
+                .update({ mess_type: messType })
+                .eq('mess_number', messNumber)
+                .eq('hostel_id', user.hostelId);
+
+            if (error) throw error;
+
+            // Force refresh
+            await fetchStudents();
+            return { success: true };
+        } catch (error) {
+            console.error('Error updating student mess type:', error);
+            return { success: false, error: error.message };
+        }
+    };
+
     return (
-        <StudentContext.Provider value={{ students, loading, addStudent, removeStudent, getStudentByMessNumber, updateLegacyFine }}>
+        <StudentContext.Provider value={{ students, loading, addStudent, removeStudent, getStudentByMessNumber, updateLegacyFine, updateStudentMessType }}>
             {children}
         </StudentContext.Provider>
     );

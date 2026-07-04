@@ -8,7 +8,7 @@ import { useStudents } from '../context/StudentContext';
 import { useLeaves } from '../context/LeaveContext';
 
 export default function ManageStudents() {
-    const { students, loading: studentsLoading, addStudent, removeStudent } = useStudents();
+    const { students, loading: studentsLoading, addStudent, removeStudent, updateStudentMessType } = useStudents();
     const { isStudentOnLeave, loading: leavesLoading } = useLeaves();
 
     const loading = studentsLoading || leavesLoading;
@@ -16,6 +16,9 @@ export default function ManageStudents() {
     const [selectedDate, setSelectedDate] = useState(getISTDate());
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState('All');
+
+    // Actions dropdown state
+    const [activeDropdownStudent, setActiveDropdownStudent] = useState(null);
 
     // Add Student Modal state
     const [showAddModal, setShowAddModal] = useState(false);
@@ -78,6 +81,13 @@ export default function ManageStudents() {
             if (!result.success) {
                 alert('Failed to remove student: ' + result.error);
             }
+        }
+    };
+
+    const handleUpdateMealPreference = async (messNumber, type) => {
+        const result = await updateStudentMessType(messNumber, type);
+        if (!result.success) {
+            alert('Failed to update meal preference: ' + result.error);
         }
     };
 
@@ -156,13 +166,22 @@ export default function ManageStudents() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredStudents.map((student) => (
+                                {filteredStudents.map((student, index) => (
                                     <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-gray-900">{student.messNumber}</td>
                                         <td className="px-6 py-4 text-gray-700 font-medium">{student.name}</td>
                                         <td className="px-6 py-4 text-gray-500">{student.phone}</td>
                                         <td className="px-6 py-4">
-                                            <Badge variant="outline" className={student.messType === 'Veg' ? 'text-green-600 border-green-200 bg-green-50' : 'text-red-600 border-red-200 bg-red-50'}>
+                                            <Badge 
+                                                variant="outline" 
+                                                className={
+                                                    student.messType === 'Veg' 
+                                                        ? 'text-green-600 border-green-200 bg-green-50' 
+                                                        : student.messType === 'Veg+C'
+                                                        ? 'text-amber-600 border-amber-200 bg-amber-50'
+                                                        : 'text-red-600 border-red-200 bg-red-50'
+                                                }
+                                            >
                                                 {student.messType || 'Veg'}
                                             </Badge>
                                         </td>
@@ -171,16 +190,69 @@ export default function ManageStudents() {
                                                 {student.status}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                onClick={() => handleRemoveStudent(student.messNumber)}
-                                                title="Remove Student"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
+                                        <td className="px-6 py-4 text-right relative">
+                                            <div className="inline-block text-left">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                                                    onClick={() => setActiveDropdownStudent(activeDropdownStudent === student.id ? null : student.id)}
+                                                    title="Actions"
+                                                >
+                                                    <MoreHorizontal className="w-4 h-4" />
+                                                </Button>
+                                                {activeDropdownStudent === student.id && (
+                                                    <>
+                                                        <div 
+                                                            className="fixed inset-0 z-10" 
+                                                            onClick={() => setActiveDropdownStudent(null)}
+                                                        />
+                                                        <div className={cn(
+                                                            "absolute right-0 w-48 rounded-lg shadow-xl bg-white border border-gray-100 ring-1 ring-black ring-opacity-5 z-20 overflow-hidden text-left",
+                                                            (index >= filteredStudents.length - 2 && filteredStudents.length > 3)
+                                                                ? "bottom-full mb-1" 
+                                                                : "top-full mt-1"
+                                                        )}>
+                                                            <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50/50 border-b border-gray-100">
+                                                                Meal Preference
+                                                            </div>
+                                                            <div className="py-1">
+                                                                {['Veg', 'Non-Veg', 'Veg+C'].map((type) => (
+                                                                    <button
+                                                                        key={type}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            handleUpdateMealPreference(student.messNumber, type);
+                                                                            setActiveDropdownStudent(null);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "flex items-center w-full text-left px-4 py-2 text-sm transition-colors",
+                                                                            student.messType === type
+                                                                                ? "bg-indigo-50 text-indigo-700 font-semibold"
+                                                                                : "text-gray-700 hover:bg-gray-50"
+                                                                        )}
+                                                                    >
+                                                                        {type} {student.messType === type && "✓"}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                            <div className="border-t border-gray-100 my-1" />
+                                                            <div className="py-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        handleRemoveStudent(student.messNumber);
+                                                                        setActiveDropdownStudent(null);
+                                                                    }}
+                                                                    className="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4 mr-2 shrink-0" /> Remove Student
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -261,17 +333,19 @@ export default function ManageStudents() {
                             {/* Mess Type */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Mess Type</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {['Veg', 'Non-Veg'].map(type => (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {['Veg', 'Non-Veg', 'Veg+C'].map(type => (
                                         <button
                                             key={type}
                                             type="button"
                                             onClick={() => setNewStudent(prev => ({ ...prev, messType: type }))}
                                             className={cn(
-                                                "px-4 py-2.5 rounded-lg text-sm font-medium border transition-all",
+                                                "px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium border transition-all",
                                                 newStudent.messType === type
                                                     ? type === 'Veg'
                                                         ? "bg-green-50 text-green-700 border-green-300 ring-2 ring-green-200"
+                                                        : type === 'Veg+C'
+                                                        ? "bg-amber-50 text-amber-700 border-amber-300 ring-2 ring-amber-200"
                                                         : "bg-red-50 text-red-700 border-red-300 ring-2 ring-red-200"
                                                     : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                                             )}

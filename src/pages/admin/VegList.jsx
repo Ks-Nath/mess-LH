@@ -334,7 +334,16 @@ export default function VegList() {
                                             <p className="font-semibold text-gray-900">{manageStudentResult.name}</p>
                                             <div className="flex items-center justify-between">
                                                 <p className="text-sm text-gray-500">{manageStudentResult.messNumber}</p>
-                                                <Badge variant="outline" className={manageStudentResult.messType === 'Veg' ? 'text-green-600 border-green-200 bg-green-50' : 'text-gray-500 border-gray-200 bg-white'}>
+                                                <Badge 
+                                                    variant="outline" 
+                                                    className={
+                                                        manageStudentResult.messType === 'Veg' 
+                                                            ? 'text-green-600 border-green-200 bg-green-50' 
+                                                            : manageStudentResult.messType === 'Veg+C'
+                                                            ? 'text-amber-600 border-amber-200 bg-amber-50'
+                                                            : 'text-gray-500 border-gray-200 bg-white'
+                                                    }
+                                                >
                                                     Current: {manageStudentResult.messType || 'Veg'}
                                                 </Badge>
                                             </div>
