@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -17,8 +17,8 @@ export default function ManageStudents() {
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState('All');
 
-    // Actions dropdown state
-    const [activeDropdownStudent, setActiveDropdownStudent] = useState(null);
+    // Actions dropdown state — stores { id, top, right } for fixed positioning
+    const [dropdownState, setDropdownState] = useState(null);
 
     // Add Student Modal state
     const [showAddModal, setShowAddModal] = useState(false);
@@ -89,6 +89,19 @@ export default function ManageStudents() {
         if (!result.success) {
             alert('Failed to update meal preference: ' + result.error);
         }
+    };
+
+    const openDropdown = (e, studentId) => {
+        if (dropdownState?.id === studentId) {
+            setDropdownState(null);
+            return;
+        }
+        const rect = e.currentTarget.getBoundingClientRect();
+        setDropdownState({
+            id: studentId,
+            top: rect.bottom + window.scrollY + 4,
+            right: window.innerWidth - rect.right,
+        });
     };
 
     return (
@@ -190,69 +203,16 @@ export default function ManageStudents() {
                                                 {student.status}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 text-right relative">
-                                            <div className="inline-block text-left">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                                                    onClick={() => setActiveDropdownStudent(activeDropdownStudent === student.id ? null : student.id)}
-                                                    title="Actions"
-                                                >
-                                                    <MoreHorizontal className="w-4 h-4" />
-                                                </Button>
-                                                {activeDropdownStudent === student.id && (
-                                                    <>
-                                                        <div 
-                                                            className="fixed inset-0 z-10" 
-                                                            onClick={() => setActiveDropdownStudent(null)}
-                                                        />
-                                                        <div className={cn(
-                                                            "absolute right-0 w-48 rounded-lg shadow-xl bg-white border border-gray-100 ring-1 ring-black ring-opacity-5 z-20 overflow-hidden text-left",
-                                                            (index >= filteredStudents.length - 2 && filteredStudents.length > 3)
-                                                                ? "bottom-full mb-1" 
-                                                                : "top-full mt-1"
-                                                        )}>
-                                                            <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50/50 border-b border-gray-100">
-                                                                Meal Preference
-                                                            </div>
-                                                            <div className="py-1">
-                                                                {['Veg', 'Non-Veg', 'Veg+C'].map((type) => (
-                                                                    <button
-                                                                        key={type}
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            handleUpdateMealPreference(student.messNumber, type);
-                                                                            setActiveDropdownStudent(null);
-                                                                        }}
-                                                                        className={cn(
-                                                                            "flex items-center w-full text-left px-4 py-2 text-sm transition-colors",
-                                                                            student.messType === type
-                                                                                ? "bg-indigo-50 text-indigo-700 font-semibold"
-                                                                                : "text-gray-700 hover:bg-gray-50"
-                                                                        )}
-                                                                    >
-                                                                        {type} {student.messType === type && "✓"}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                            <div className="border-t border-gray-100 my-1" />
-                                                            <div className="py-1">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        handleRemoveStudent(student.messNumber);
-                                                                        setActiveDropdownStudent(null);
-                                                                    }}
-                                                                    className="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4 mr-2 shrink-0" /> Remove Student
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
+                                        <td className="px-6 py-4 text-right">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                                                onClick={(e) => openDropdown(e, student.id)}
+                                                title="Actions"
+                                            >
+                                                <MoreHorizontal className="w-4 h-4" />
+                                            </Button>
                                         </td>
                                     </tr>
                                 ))}
@@ -267,6 +227,62 @@ export default function ManageStudents() {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Fixed-position Actions Dropdown — renders outside overflow context */}
+            {dropdownState && (() => {
+                const student = filteredStudents.find(s => s.id === dropdownState.id);
+                if (!student) return null;
+                return (
+                    <>
+                        {/* Backdrop to close on outside click */}
+                        <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setDropdownState(null)}
+                        />
+                        <div
+                            className="fixed z-50 w-48 rounded-lg shadow-xl bg-white border border-gray-100 ring-1 ring-black ring-opacity-5 overflow-hidden"
+                            style={{ top: dropdownState.top, right: dropdownState.right }}
+                        >
+                            <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50/50 border-b border-gray-100">
+                                Meal Preference
+                            </div>
+                            <div className="py-1">
+                                {['Veg', 'Non-Veg', 'Veg+C'].map((type) => (
+                                    <button
+                                        key={type}
+                                        type="button"
+                                        onClick={() => {
+                                            handleUpdateMealPreference(student.messNumber, type);
+                                            setDropdownState(null);
+                                        }}
+                                        className={cn(
+                                            "flex items-center w-full text-left px-4 py-2 text-sm transition-colors",
+                                            student.messType === type
+                                                ? "bg-indigo-50 text-indigo-700 font-semibold"
+                                                : "text-gray-700 hover:bg-gray-50"
+                                        )}
+                                    >
+                                        {type} {student.messType === type && "✓"}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="border-t border-gray-100" />
+                            <div className="py-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        handleRemoveStudent(student.messNumber);
+                                        setDropdownState(null);
+                                    }}
+                                    className="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2 shrink-0" /> Remove Student
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                );
+            })()}
 
             {/* Add Student Modal */}
             {showAddModal && (
