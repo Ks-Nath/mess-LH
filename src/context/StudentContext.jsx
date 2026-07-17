@@ -67,6 +67,7 @@ export function StudentProvider({ children }) {
                 joinDate: s.join_date,
                 legacyFines: s.legacy_fines || 0,
                 hostelId: s.hostel_id,
+                batch: s.batch || null,
             }));
 
             // Natural sort by mess number (handles "1", "2", "10" vs "1", "10", "2")
@@ -162,6 +163,30 @@ export function StudentProvider({ children }) {
         }
     };
 
+    const updateStudentBatch = async (studentId, batch) => {
+        if (!user?.hostelId) return { success: false, error: 'No hostel assigned' };
+
+        try {
+            const { error } = await supabase
+                .from('students')
+                .update({ batch: batch || null })
+                .eq('id', studentId)
+                .eq('hostel_id', user.hostelId);
+
+            if (error) throw error;
+
+            // Optimistic UI update
+            setStudents(prev => prev.map(s =>
+                s.id === studentId ? { ...s, batch: batch || null } : s
+            ));
+
+            return { success: true };
+        } catch (error) {
+            console.error('Error updating student batch:', error);
+            return { success: false, error: error.message };
+        }
+    };
+
     const updateStudentMessType = async (messNumber, messType) => {
         if (!user?.hostelId) return { success: false, error: 'No hostel assigned' };
 
@@ -184,7 +209,7 @@ export function StudentProvider({ children }) {
     };
 
     return (
-        <StudentContext.Provider value={{ students, loading, addStudent, removeStudent, getStudentByMessNumber, updateLegacyFine, updateStudentMessType }}>
+        <StudentContext.Provider value={{ students, loading, addStudent, removeStudent, getStudentByMessNumber, updateLegacyFine, updateStudentMessType, updateStudentBatch }}>
             {children}
         </StudentContext.Provider>
     );

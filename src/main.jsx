@@ -10,6 +10,7 @@ import './index.css'
 import App from './App'
 
 import { MenuProvider } from './context/MenuContext'
+import { BatchwiseLeaveProvider } from './context/BatchwiseLeaveContext'
 
 createRoot(document.getElementById('root')).render(
     <StrictMode>
@@ -18,11 +19,13 @@ createRoot(document.getElementById('root')).render(
                 <HostelProvider>
                     <StudentProvider>
                         <LeaveProvider>
-                            <EstablishmentProvider>
-                                <MenuProvider>
-                                    <App />
-                                </MenuProvider>
-                            </EstablishmentProvider>
+                            <BatchwiseLeaveProvider>
+                                <EstablishmentProvider>
+                                    <MenuProvider>
+                                        <App />
+                                    </MenuProvider>
+                                </EstablishmentProvider>
+                            </BatchwiseLeaveProvider>
                         </LeaveProvider>
                     </StudentProvider>
                 </HostelProvider>

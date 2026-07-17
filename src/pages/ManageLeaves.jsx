@@ -1,19 +1,22 @@
 import { useState } from 'react';
 import { useLeaves } from '../context/LeaveContext';
+import { useBatchwiseLeaves } from '../context/BatchwiseLeaveContext';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { getISTDate, getISTDateString } from '../lib/utils';
 import { useStudents } from '../context/StudentContext';
+import { BATCHES } from '../data/mockData';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import toast, { Toaster } from 'react-hot-toast';
-import { CalendarIcon, UserX, CheckCircle, AlertCircle, CalendarRange, CalendarPlus } from 'lucide-react';
+import { CalendarIcon, UserX, CheckCircle, AlertCircle, CalendarRange, CalendarPlus, GraduationCap, Trash2 } from 'lucide-react';
 
 export default function ManageLeaves() {
     const { getLeavesByDate, addLeave, addBulkLeaves, removeLeave, removeBulkLeaves, isStudentOnLeave, refreshLeaves, loading: leavesLoading } = useLeaves();
+    const { batchLeaves, addBatchwiseLeave, deleteBatchwiseLeave, loading: batchLoading } = useBatchwiseLeaves();
     const { user } = useAuth();
     const { students, loading: studentsLoading } = useStudents();
-    
+
     const isLoading = leavesLoading || studentsLoading;
     const [selectedDate, setSelectedDate] = useState(getISTDate());
 
@@ -26,11 +29,17 @@ export default function ManageLeaves() {
     const [ltjStartDate, setLtjStartDate] = useState(getISTDate());
     const [ltjEndDate, setLtjEndDate] = useState(getISTDate());
 
+    // Batchwise Leave State
+    const [bwBatch, setBwBatch] = useState('');
+    const [bwStartDate, setBwStartDate] = useState('');
+    const [bwEndDate, setBwEndDate] = useState('');
+    const [isGrantingBatchwise, setIsGrantingBatchwise] = useState(false);
+
     // Helper to format date as YYYY-MM-DD for context
     const formatDateKey = (date) => {
         // Fallback to getISTDateString logic if input is not a Date object
         if (!(date instanceof Date)) return getISTDateString();
-        
+
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
@@ -128,10 +137,10 @@ export default function ManageLeaves() {
 
         if (ltjMessNumber === 'ALL') {
             const activeStudents = students.filter(s => s.messStatus === 'Active');
-            if (!window.confirm(`Grant leave for ALL ${activeStudents.length} active students for ${dates.length} day(s)?\n${formatDateKey(start)} \u2192 ${formatDateKey(end)}\n\nTotal records: ${activeStudents.length * dates.length}\nThese will NOT count towards the monthly quota.`)) return;
+            if (!window.confirm(`Grant leave for ALL ${activeStudents.length} active students for ${dates.length} day(s)?\n${formatDateKey(start)} → ${formatDateKey(end)}\n\nTotal records: ${activeStudents.length * dates.length}\nThese will NOT count towards the monthly quota.`)) return;
 
             toast.loading(`Cleaning up overlapping leaves...`, { id: 'ltj-grant' });
-            
+
             const messNumbers = activeStudents.map(s => s.messNumber);
             const batchSizeForDelete = 200;
             let delErrorAll = null;
@@ -187,10 +196,10 @@ export default function ManageLeaves() {
                 return;
             }
 
-            if (!window.confirm(`Grant leave for ${selectedStudent.name} (${ltjMessNumber}) for ${dates.length} day(s)?\n${formatDateKey(start)} \u2192 ${formatDateKey(end)}\n\nThese will NOT count towards the monthly quota.`)) return;
+            if (!window.confirm(`Grant leave for ${selectedStudent.name} (${ltjMessNumber}) for ${dates.length} day(s)?\n${formatDateKey(start)} → ${formatDateKey(end)}\n\nThese will NOT count towards the monthly quota.`)) return;
 
             toast.loading(`Cleaning up overlapping leaves...`, { id: 'ltj-grant' });
-            
+
             const { error: delError } = await supabase
                 .from('leaves')
                 .delete()
@@ -229,6 +238,56 @@ export default function ManageLeaves() {
 
         setLtjMessNumber('');
         if (refreshLeaves) refreshLeaves();
+    };
+
+    const handleGrantBatchwiseLeave = async () => {
+        if (!bwBatch) { toast.error('Please select a batch'); return; }
+        if (!bwStartDate) { toast.error('Please select a start date'); return; }
+        if (!bwEndDate) { toast.error('Please select an end date'); return; }
+        if (bwStartDate > bwEndDate) { toast.error('Start date must be on or before end date'); return; }
+
+        // Count days in range for confirmation
+        const start = new Date(bwStartDate + 'T00:00:00');
+        const end = new Date(bwEndDate + 'T00:00:00');
+        let totalDays = 0;
+        const cur = new Date(start);
+        while (cur <= end) { totalDays++; cur.setDate(cur.getDate() + 1); }
+
+        if (!window.confirm(`Grant ${totalDays} batchwise leave day(s) for batch "${bwBatch}"?\n${bwStartDate} → ${bwEndDate}\n\nThis will reduce the self-leave quota for all students in this batch.`)) return;
+
+        setIsGrantingBatchwise(true);
+        toast.loading('Granting batchwise leave...', { id: 'bw-grant' });
+
+        const result = await addBatchwiseLeave(bwBatch, bwStartDate, bwEndDate);
+
+        if (result.success) {
+            toast.success(`Batchwise leave granted for ${bwBatch}`, { id: 'bw-grant' });
+            setBwBatch('');
+            setBwStartDate('');
+            setBwEndDate('');
+        } else {
+            toast.error(`Failed: ${result.error}`, { id: 'bw-grant' });
+        }
+        setIsGrantingBatchwise(false);
+    };
+
+    const handleDeleteBatchwiseLeave = async (id, batch, startDate, endDate) => {
+        if (!window.confirm(`Delete batchwise leave for "${batch}" from ${startDate} to ${endDate}?\nStudents of this batch will regain self-leave capacity for those days.`)) return;
+
+        toast.loading('Deleting...', { id: 'bw-delete' });
+        const result = await deleteBatchwiseLeave(id);
+        if (result.success) {
+            toast.success('Batchwise leave deleted', { id: 'bw-delete' });
+        } else {
+            toast.error(`Failed: ${result.error}`, { id: 'bw-delete' });
+        }
+    };
+
+    // Helper: count total days in a batchwise grant
+    const countDays = (startDate, endDate) => {
+        const s = new Date(startDate + 'T00:00:00');
+        const e = new Date(endDate + 'T00:00:00');
+        return Math.max(0, Math.round((e - s) / 86400000) + 1);
     };
 
     return (
@@ -283,7 +342,6 @@ export default function ManageLeaves() {
                                                 <th className="px-4 py-3 font-medium text-gray-700">Mess No</th>
                                                 <th className="px-4 py-3 font-medium text-gray-700">Name</th>
                                                 <th className="px-4 py-3 font-medium text-gray-700 hidden md:table-cell">Phone</th>
-
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
@@ -300,7 +358,6 @@ export default function ManageLeaves() {
                                                         </td>
                                                         <td className="px-4 py-3">{student ? student.name : 'Unknown'}</td>
                                                         <td className="px-4 py-3 hidden md:table-cell">{student ? student.phone : '-'}</td>
-
                                                     </tr>
                                                 );
                                             })}
@@ -310,10 +367,159 @@ export default function ManageLeaves() {
                             )}
                         </CardContent>
                     </Card>
+
+                    {/* Batchwise Leave — Existing Grants List */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <GraduationCap className="w-5 h-5 text-purple-600" />
+                                Active Batchwise Leave Grants
+                            </CardTitle>
+                            <CardDescription>
+                                All batchwise leave ranges granted. Deleting a grant restores self-leave quota for that batch.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {batchLoading ? (
+                                <div className="space-y-3">
+                                    <div className="h-10 w-full bg-gray-100 rounded animate-pulse" />
+                                    <div className="h-10 w-full bg-gray-50 rounded animate-pulse" />
+                                </div>
+                            ) : batchLeaves.length === 0 ? (
+                                <div className="text-center py-8 text-gray-400">
+                                    <GraduationCap className="w-10 h-10 mx-auto mb-2 opacity-20" />
+                                    <p className="text-sm">No batchwise leaves granted yet.</p>
+                                </div>
+                            ) : (
+                                <div className="border rounded-md overflow-hidden">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-purple-50 border-b">
+                                            <tr>
+                                                <th className="px-4 py-3 font-medium text-purple-800">Batch</th>
+                                                <th className="px-4 py-3 font-medium text-purple-800">Date Range</th>
+                                                <th className="px-4 py-3 font-medium text-purple-800 text-center">Days</th>
+                                                <th className="px-4 py-3 font-medium text-purple-800 text-right">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {batchLeaves.map(grant => (
+                                                <tr key={grant.id} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-3 font-semibold text-purple-700">{grant.batch}</td>
+                                                    <td className="px-4 py-3 text-gray-600 font-mono text-xs">
+                                                        {grant.startDate} → {grant.endDate}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${countDays(grant.startDate, grant.endDate) >= 10 ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-700'}`}>
+                                                            {countDays(grant.startDate, grant.endDate)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <button
+                                                            onClick={() => handleDeleteBatchwiseLeave(grant.id, grant.batch, grant.startDate, grant.endDate)}
+                                                            className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                                            title="Delete grant"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
 
-                {/* Manual Override Section */}
-                <div className="lg:col-span-1">
+                {/* Right sidebar — action cards */}
+                <div className="lg:col-span-1 space-y-6">
+                    {/* ── BATCHWISE LEAVE GRANT ── */}
+                    <Card className="border-l-4 border-l-purple-500">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-purple-900">
+                                <GraduationCap className="w-4 h-4 text-purple-600" />
+                                Batchwise Leave
+                            </CardTitle>
+                            <CardDescription>
+                                Grant leaves for an entire batch over a date range. Reduces students' self-leave quota for affected months.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Select Batch</label>
+                                <select
+                                    className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    value={bwBatch}
+                                    onChange={(e) => setBwBatch(e.target.value)}
+                                >
+                                    <option value="" disabled>Select batch...</option>
+                                    {BATCHES.map(b => (
+                                        <option key={b} value={b}>{b}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Start Date</label>
+                                    <input
+                                        type="date"
+                                        className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        value={bwStartDate}
+                                        onChange={(e) => setBwStartDate(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">End Date</label>
+                                    <input
+                                        type="date"
+                                        className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        value={bwEndDate}
+                                        onChange={(e) => setBwEndDate(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Preview: days per month */}
+                            {bwStartDate && bwEndDate && bwStartDate <= bwEndDate && (() => {
+                                const s = new Date(bwStartDate + 'T00:00:00');
+                                const e = new Date(bwEndDate + 'T00:00:00');
+                                const monthCounts = {};
+                                const cur = new Date(s);
+                                const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                                while (cur <= e) {
+                                    const key = `${monthNames[cur.getMonth()]} ${cur.getFullYear()}`;
+                                    monthCounts[key] = (monthCounts[key] || 0) + 1;
+                                    cur.setDate(cur.getDate() + 1);
+                                }
+                                return (
+                                    <div className="bg-purple-50 rounded-lg p-3 border border-purple-100 space-y-1">
+                                        <p className="text-xs font-semibold text-purple-700 mb-1">Impact preview:</p>
+                                        {Object.entries(monthCounts).map(([month, days]) => (
+                                            <div key={month} className="flex justify-between text-xs text-purple-700">
+                                                <span>{month}</span>
+                                                <span className={`font-bold ${days >= 10 ? 'text-red-600' : ''}`}>
+                                                    {days} day{days !== 1 ? 's' : ''} {days >= 10 ? '⚠ blocks self-leave' : `→ ${10 - days} self-leave remaining`}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+
+                            <Button
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                                onClick={handleGrantBatchwiseLeave}
+                                disabled={isGrantingBatchwise || !bwBatch || !bwStartDate || !bwEndDate}
+                            >
+                                <GraduationCap className="w-4 h-4 mr-2" />
+                                {isGrantingBatchwise ? 'Granting...' : 'Grant Batchwise Leave'}
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    {/* Manual Override Section */}
                     <Card className="border-l-4 border-l-blue-500">
                         <CardHeader>
                             <CardTitle>Administrative Override</CardTitle>

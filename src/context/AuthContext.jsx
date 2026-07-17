@@ -118,6 +118,7 @@ export function AuthProvider({ children }) {
                 joinDate: validStudent.join_date,
                 legacyFines: validStudent.legacy_fines || 0,
                 hostelId: validStudent.hostel_id,
+                batch: validStudent.batch || null,
                 hasCustomPassword: !!(validStudent.password && validStudent.password.trim() !== '') // Helper flag
             };
 
@@ -136,8 +137,19 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('messArgUser');
     };
 
+    // Updates the student's batch in the local user state + localStorage
+    // (the actual DB write is done in StudentContext.updateStudentBatch)
+    const updateBatch = (batch) => {
+        setUser(prev => {
+            if (!prev) return prev;
+            const updated = { ...prev, batch: batch || null };
+            localStorage.setItem('messArgUser', JSON.stringify(updated));
+            return updated;
+        });
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, updateBatch, isAuthenticated: !!user, loading }}>
             {children}
         </AuthContext.Provider>
     );

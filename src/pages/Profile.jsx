@@ -1,17 +1,24 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useStudents } from '../context/StudentContext';
 import { supabase } from '../lib/supabaseClient';
 import toast, { Toaster } from 'react-hot-toast';
-import { User, Phone, Key, ShieldCheck, Hash, Home } from 'lucide-react';
+import { User, Phone, Key, ShieldCheck, Hash, Home, GraduationCap, ChevronDown } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { BATCHES } from '../data/mockData';
 
 export default function Profile() {
-    const { user } = useAuth();
+    const { user, updateBatch } = useAuth();
+    const { updateStudentBatch } = useStudents();
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // Batch state
+    const [selectedBatch, setSelectedBatch] = useState(user?.batch || '');
+    const [isSavingBatch, setIsSavingBatch] = useState(false);
 
     const handlePasswordChange = async (e) => {
         e.preventDefault();
@@ -43,6 +50,26 @@ export default function Profile() {
             toast.error('Failed to update password');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleBatchSave = async () => {
+        if (selectedBatch === (user?.batch || '')) {
+            toast('No changes to save');
+            return;
+        }
+        setIsSavingBatch(true);
+        try {
+            const result = await updateStudentBatch(user.id, selectedBatch || null);
+            if (!result.success) throw new Error(result.error);
+            // Sync local auth state
+            updateBatch(selectedBatch || null);
+            toast.success(selectedBatch ? `Batch set to "${selectedBatch}"` : 'Batch cleared');
+        } catch (error) {
+            console.error('Error updating batch:', error);
+            toast.error('Failed to update batch');
+        } finally {
+            setIsSavingBatch(false);
         }
     };
 
@@ -108,58 +135,107 @@ export default function Profile() {
                     </CardContent>
                 </Card>
 
-                {/* Security Section */}
-                <Card className="border-gray-200 shadow-sm h-fit">
-                    <CardHeader className="bg-indigo-50 border-b border-indigo-100 pb-4">
-                        <CardTitle className="text-lg flex items-center gap-2 text-indigo-900">
-                            <ShieldCheck className="w-5 h-5 text-indigo-600" />
-                            Security
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-4">
-                        <div className="text-sm text-gray-600 mb-4 bg-yellow-50 p-3 rounded-lg border border-yellow-100">
-                            <p><strong>Note:</strong> Setting a custom password will disable login via phone number.</p>
-                        </div>
-
-                        <form onSubmit={handlePasswordChange} className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">New Password</label>
-                                <div className="relative">
-                                    <Key className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                                    <input
-                                        type="password"
-                                        value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                                        placeholder="Min 6 characters"
-                                    />
-                                </div>
-                            </div>
+                {/* Right column — stacked cards */}
+                <div className="space-y-6">
+                    {/* Academic Batch Card */}
+                    <Card className="border-gray-200 shadow-sm">
+                        <CardHeader className="bg-purple-50 border-b border-purple-100 pb-4">
+                            <CardTitle className="text-lg flex items-center gap-2 text-purple-900">
+                                <GraduationCap className="w-5 h-5 text-purple-600" />
+                                Academic Batch
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-4">
+                            <p className="text-sm text-gray-500">
+                                Select your batch so the admin can grant batchwise leaves correctly.
+                            </p>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Confirm Password</label>
+                                <label className="text-sm font-medium text-gray-700">Your Batch</label>
                                 <div className="relative">
-                                    <Key className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                                    <input
-                                        type="password"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                                        placeholder="Repeat password"
-                                    />
+                                    <select
+                                        value={selectedBatch}
+                                        onChange={(e) => setSelectedBatch(e.target.value)}
+                                        className="w-full appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white"
+                                    >
+                                        <option value="">— Not set —</option>
+                                        {BATCHES.map(b => (
+                                            <option key={b} value={b}>{b}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-2.5 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
                                 </div>
                             </div>
 
                             <Button
-                                type="submit"
-                                className="w-full mt-2"
-                                disabled={isLoading || !newPassword || !confirmPassword}
+                                onClick={handleBatchSave}
+                                disabled={isSavingBatch}
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                             >
-                                {isLoading ? 'Updating...' : 'Update Password'}
+                                {isSavingBatch ? 'Saving...' : 'Save Batch'}
                             </Button>
-                        </form>
-                    </CardContent>
-                </Card>
+
+                            {user.batch && (
+                                <p className="text-xs text-center text-gray-400">
+                                    Currently: <span className="font-semibold text-purple-700">{user.batch}</span>
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Security Section */}
+                    <Card className="border-gray-200 shadow-sm h-fit">
+                        <CardHeader className="bg-indigo-50 border-b border-indigo-100 pb-4">
+                            <CardTitle className="text-lg flex items-center gap-2 text-indigo-900">
+                                <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                                Security
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-4">
+                            <div className="text-sm text-gray-600 mb-4 bg-yellow-50 p-3 rounded-lg border border-yellow-100">
+                                <p><strong>Note:</strong> Setting a custom password will disable login via phone number.</p>
+                            </div>
+
+                            <form onSubmit={handlePasswordChange} className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">New Password</label>
+                                    <div className="relative">
+                                        <Key className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                                        <input
+                                            type="password"
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                            placeholder="Min 6 characters"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Confirm Password</label>
+                                    <div className="relative">
+                                        <Key className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                                        <input
+                                            type="password"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                            placeholder="Repeat password"
+                                        />
+                                    </div>
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    className="w-full mt-2"
+                                    disabled={isLoading || !newPassword || !confirmPassword}
+                                >
+                                    {isLoading ? 'Updating...' : 'Update Password'}
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

@@ -122,3 +122,20 @@ export const initialLeaves = [
 
 export const LEAVE_CUTOFF_HOUR = 20; // 8 PM
 export const MAX_LEAVES_PER_MONTH = 10; // Max leave days allowed per calendar month
+
+export const BATCHES = [
+    'MBBS 21',
+    'MBBS 23',
+    'MBBS 24',
+    'BPharm 22',
+    'BPharm 23',
+    'BPharm 24',
+    'Bsc Mit 23',
+    'Bsc Mit 24',
+    'Bpt 24',
+    'Bdt 23',
+    'Bdt 24',
+    'Bsc Perfusion 23',
+    'Bsc Perfusion 20',
+    'Bmlt 23',
+];

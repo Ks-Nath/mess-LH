@@ -13,8 +13,8 @@ export default function LeaveCalendar({
     leavesUsedThisMonth,
     today,
     cutoffTime,
+    batchwiseDates = [], // Array of 'YYYY-MM-DD' strings covered by batchwise grants for student's batch
 }) {
-    // const today = new Date(); // Using today from props
     const monthNames = [
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December',
@@ -25,6 +25,9 @@ export default function LeaveCalendar({
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
     const isCapReached = maxLeaves != null && leavesUsedThisMonth >= maxLeaves;
+
+    // Build a Set for O(1) batchwise lookup
+    const batchwiseDateSet = new Set(batchwiseDates);
 
     const isPastDate = (day) => {
         const d = new Date(currentYear, currentMonth, day);
@@ -74,6 +77,10 @@ export default function LeaveCalendar({
         return getLeaveInfo(day)?.isAdminGranted;
     };
 
+    const isBatchwiseLeave = (day) => {
+        return batchwiseDateSet.has(getDateStr(day));
+    };
+
     const isDisabled = (day) => {
         if (isPastDate(day)) return true;
 
@@ -82,6 +89,9 @@ export default function LeaveCalendar({
 
         const info = getLeaveInfo(day);
         if (info?.isAdminGranted) return true; // Cannot toggle admin leaves from here
+
+        // Batchwise leave days are non-clickable
+        if (isBatchwiseLeave(day)) return true;
 
         // CUTOFF RULE: If cutoff passed (8 PM), disable tomorrow as well.
         if (isTomorrow(day) && isTodayCutoffPassed()) return true;
@@ -101,6 +111,9 @@ export default function LeaveCalendar({
 
         const info = getLeaveInfo(day);
         if (info?.isAdminGranted) return;
+
+        // Batchwise leaves are non-toggleable by student
+        if (isBatchwiseLeave(day)) return;
 
         // Allow the toggle — LeaveSelection.jsx handles the cap toast
         onDateToggle(getDateStr(day));
@@ -142,27 +155,31 @@ export default function LeaveCalendar({
                     const disabled = isDisabled(day);
                     const selected = !!info;
                     const adminGranted = Boolean(info?.isAdminGranted);
+                    const batchwise = isBatchwiseLeave(day);
                     const todayDate = isToday(day);
-                    const cappedOut = isCapReached && !selected && !isPastDate(day) && !(isToday(day) && isTodayCutoffPassed());
+                    const cappedOut = isCapReached && !selected && !batchwise && !isPastDate(day) && !(isToday(day) && isTodayCutoffPassed());
 
                     return (
                         <button
                             key={day}
                             onClick={() => handleClick(day)}
                             disabled={disabled}
+                            title={batchwise ? 'Batchwise leave granted by admin' : undefined}
                             className={cn(
                                 "aspect-square rounded-lg text-sm font-medium relative transition-all duration-200 border border-transparent",
-                                adminGranted
-                                    ? "bg-admin-purple text-white shadow-sm cursor-not-allowed opacity-90"
-                                    : selected
-                                        ? "bg-red-500 text-white shadow-sm hover:bg-red-600"
-                                        : todayDate
-                                            ? "bg-primary-50 text-primary-700 border-primary-100"
-                                            : cappedOut
-                                                ? "text-gray-300 cursor-not-allowed bg-gray-50/80 border-dashed border-gray-200"
-                                                : disabled
-                                                    ? "text-gray-300 cursor-not-allowed bg-gray-50/50"
-                                                    : "text-gray-700 hover:bg-gray-100 hover:border-gray-200"
+                                batchwise
+                                    ? "bg-purple-500 text-white shadow-sm cursor-not-allowed opacity-90"
+                                    : adminGranted
+                                        ? "bg-admin-purple text-white shadow-sm cursor-not-allowed opacity-90"
+                                        : selected
+                                            ? "bg-red-500 text-white shadow-sm hover:bg-red-600"
+                                            : todayDate
+                                                ? "bg-primary-50 text-primary-700 border-primary-100"
+                                                : cappedOut
+                                                    ? "text-gray-300 cursor-not-allowed bg-gray-50/80 border-dashed border-gray-200"
+                                                    : disabled
+                                                        ? "text-gray-300 cursor-not-allowed bg-gray-50/50"
+                                                        : "text-gray-700 hover:bg-gray-100 hover:border-gray-200"
                             )}
                         >
                             {day}
@@ -179,6 +196,10 @@ export default function LeaveCalendar({
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded bg-red-500"></div>
                     <span className="text-xs text-gray-500 font-medium">Your Leave</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded bg-purple-500"></div>
+                    <span className="text-xs text-gray-500 font-medium">Batchwise Leave</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded bg-admin-purple"></div>

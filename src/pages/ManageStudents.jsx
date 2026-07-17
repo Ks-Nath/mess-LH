@@ -173,6 +173,7 @@ export default function ManageStudents() {
                                     <th className="px-6 py-4 font-semibold text-gray-900">Mess No</th>
                                     <th className="px-6 py-4 font-semibold text-gray-900">Name</th>
                                     <th className="px-6 py-4 font-semibold text-gray-900">Phone</th>
+                                    <th className="px-6 py-4 font-semibold text-gray-900 hidden md:table-cell">Batch</th>
                                     <th className="px-6 py-4 font-semibold text-gray-900">Type</th>
                                     <th className="px-6 py-4 font-semibold text-gray-900">Status</th>
                                     <th className="px-6 py-4 font-semibold text-gray-900 text-right">Actions</th>
@@ -184,6 +185,15 @@ export default function ManageStudents() {
                                         <td className="px-6 py-4 font-medium text-gray-900">{student.messNumber}</td>
                                         <td className="px-6 py-4 text-gray-700 font-medium">{student.name}</td>
                                         <td className="px-6 py-4 text-gray-500">{student.phone}</td>
+                                        <td className="px-6 py-4 hidden md:table-cell">
+                                            {student.batch ? (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                                    {student.batch}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-300 text-xs">—</span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4">
                                             <Badge 
                                                 variant="outline" 

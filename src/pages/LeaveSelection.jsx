@@ -2,19 +2,21 @@ import { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import LeaveCalendar from '../components/LeaveCalendar';
 import { MAX_LEAVES_PER_MONTH } from '../data/mockData';
-import { CalendarOff, Clock, Save, AlertTriangle, X, Info } from 'lucide-react';
+import { CalendarOff, Clock, Save, AlertTriangle, X, Info, GraduationCap } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { useLeaves } from '../context/LeaveContext';
 import { useAuth } from '../context/AuthContext';
 import { useHostel } from '../context/HostelContext';
+import { useBatchwiseLeaves } from '../context/BatchwiseLeaveContext';
 import { getISTDate } from '../lib/utils';
 
 export default function LeaveSelection() {
     const { user } = useAuth();
     const { getLeavesByDate, addStudentLeavesBulk, removeStudentLeavesBulk, leaves, loading: leavesLoading } = useLeaves();
     const { cutoffTime } = useHostel();
+    const { getBatchwiseDaysForMonth, getBatchwiseDatesForMonth, loading: batchLoading } = useBatchwiseLeaves();
 
     const [today, setToday] = useState(getISTDate());
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -56,14 +58,29 @@ export default function LeaveSelection() {
 
     const isTodayCutoffPassed = today.getHours() >= cutoffTime;
 
-    // Count leaves selected in the currently viewed month (EXCLUDING admin-granted leaves)
+    // ── BATCHWISE QUOTA LOGIC ──────────────────────────────────────────────
+    // Count batchwise days granted by admin for this student's batch this month
+    const batchwiseDaysThisMonth = user?.batch
+        ? getBatchwiseDaysForMonth(user.batch, currentYear, currentMonth)
+        : 0;
+
+    // Effective cap = 10 minus batchwise days (floored at 0)
+    const effectiveCap = Math.max(0, MAX_LEAVES_PER_MONTH - batchwiseDaysThisMonth);
+
+    // Batchwise dates to display as purple on the calendar
+    const batchwiseDatesThisMonth = user?.batch
+        ? getBatchwiseDatesForMonth(user.batch, currentYear, currentMonth)
+        : [];
+    // ──────────────────────────────────────────────────────────────────────
+
+    // Count self-applied leaves for the currently viewed month (EXCLUDING admin-granted leaves)
     const leavesThisMonth = selectedDates.filter((l) => {
         if (l.isAdminGranted) return false;
         const d = new Date(l.date + 'T00:00:00');
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     }).length;
 
-    const remainingLeaves = MAX_LEAVES_PER_MONTH - leavesThisMonth;
+    const remainingLeaves = effectiveCap - leavesThisMonth;
     const isCapReached = remainingLeaves <= 0;
 
     const handleDateToggle = (dateStr) => {
@@ -102,13 +119,13 @@ export default function LeaveSelection() {
                 // Check if the date being added belongs to the viewed month
                 const d = new Date(dateStr + 'T00:00:00');
                 if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-                    toast.error(`Maximum ${MAX_LEAVES_PER_MONTH} leave days reached for this month`, {
+                    const msg = effectiveCap === 0
+                        ? `Your batch has been granted ${batchwiseDaysThisMonth} batchwise leave days this month (≥10). No self-leave allowed.`
+                        : `You've used all ${effectiveCap} available self-leave days this month (${batchwiseDaysThisMonth} day${batchwiseDaysThisMonth !== 1 ? 's' : ''} taken by batchwise leave).`;
+                    toast.error(msg, {
                         position: 'bottom-center',
-                        style: {
-                            borderRadius: '8px',
-                            background: '#1f2937',
-                            color: '#fff',
-                        },
+                        style: { borderRadius: '8px', background: '#1f2937', color: '#fff' },
+                        duration: 4000,
                     });
                     return;
                 }
@@ -211,13 +228,16 @@ export default function LeaveSelection() {
 
     // Progress colour: green → amber → red
     const getProgressColor = () => {
-        const ratio = leavesThisMonth / MAX_LEAVES_PER_MONTH;
+        if (effectiveCap === 0) return { bar: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50', border: 'border-red-100' };
+        const ratio = leavesThisMonth / effectiveCap;
         if (ratio >= 1) return { bar: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50', border: 'border-red-100' };
         if (ratio >= 0.8) return { bar: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-100' };
         return { bar: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-100' };
     };
     const progressColors = getProgressColor();
-    const progressPercent = Math.min((leavesThisMonth / MAX_LEAVES_PER_MONTH) * 100, 100);
+    const progressPercent = effectiveCap === 0 ? 100 : Math.min((leavesThisMonth / effectiveCap) * 100, 100);
+
+    const isLoading = leavesLoading || batchLoading;
 
     return (
         <div className="space-y-8 animate-fade-in mx-auto">
@@ -235,6 +255,35 @@ export default function LeaveSelection() {
                     <span className="text-sm font-medium text-gray-700">Cutoff: {cutoffTime > 12 ? cutoffTime - 12 : cutoffTime}:00 {cutoffTime >= 12 ? 'PM' : 'AM'} daily</span>
                 </div>
             </div>
+
+            {/* No-batch nudge banner */}
+            {!user?.batch && (
+                <div className="flex gap-3 p-4 bg-purple-50 border border-purple-100 rounded-lg">
+                    <GraduationCap className="w-5 h-5 text-purple-600 shrink-0" />
+                    <div>
+                        <p className="text-sm font-semibold text-purple-900">Set your academic batch</p>
+                        <p className="text-sm text-purple-700 mt-0.5">
+                            Go to <strong>Profile → Academic Batch</strong> to select your batch. This ensures admin-granted batchwise leaves are applied to you correctly.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Batchwise leave info for this month */}
+            {user?.batch && batchwiseDaysThisMonth > 0 && (
+                <div className="flex gap-3 p-4 bg-purple-50 border border-purple-100 rounded-lg">
+                    <GraduationCap className="w-5 h-5 text-purple-600 shrink-0" />
+                    <div>
+                        <p className="text-sm font-semibold text-purple-900">Batchwise leave this month</p>
+                        <p className="text-sm text-purple-700 mt-0.5">
+                            Your batch (<strong>{user.batch}</strong>) has been granted <strong>{batchwiseDaysThisMonth} batchwise leave day{batchwiseDaysThisMonth !== 1 ? 's' : ''}</strong> this month.
+                            {effectiveCap === 0
+                                ? ' You cannot apply any self-leave for this month.'
+                                : ` You can apply up to ${effectiveCap} more day${effectiveCap !== 1 ? 's' : ''} of self-leave.`}
+                        </p>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -263,25 +312,37 @@ export default function LeaveSelection() {
                     )}
 
                     {/* Warning when nearing or at limit */}
-                    {remainingLeaves <= 2 && remainingLeaves > 0 && (
+                    {effectiveCap > 0 && remainingLeaves <= 2 && remainingLeaves > 0 && (
                         <div className="flex gap-3 p-4 bg-amber-50 border border-amber-100 rounded-lg">
                             <Info className="w-5 h-5 text-amber-600 shrink-0" />
                             <div>
                                 <p className="text-sm font-semibold text-amber-900">Almost at leave limit</p>
                                 <p className="text-sm text-amber-700 mt-0.5">
-                                    Only <strong>{remainingLeaves}</strong> leave {remainingLeaves === 1 ? 'day' : 'days'} remaining this month.
+                                    Only <strong>{remainingLeaves}</strong> self-leave {remainingLeaves === 1 ? 'day' : 'days'} remaining this month.
                                 </p>
                             </div>
                         </div>
                     )}
 
-                    {isCapReached && (
+                    {isCapReached && effectiveCap > 0 && (
                         <div className="flex gap-3 p-4 bg-red-50 border border-red-100 rounded-lg">
                             <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
                             <div>
-                                <p className="text-sm font-semibold text-red-900">Leave limit reached</p>
+                                <p className="text-sm font-semibold text-red-900">Self-leave limit reached</p>
                                 <p className="text-sm text-red-700 mt-0.5">
-                                    You've used all <strong>{MAX_LEAVES_PER_MONTH}</strong> leave days for this month. Deselect a date to free up a slot.
+                                    You've used all <strong>{effectiveCap}</strong> self-leave days for this month. Deselect a date to free up a slot.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {effectiveCap === 0 && (
+                        <div className="flex gap-3 p-4 bg-red-50 border border-red-100 rounded-lg">
+                            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+                            <div>
+                                <p className="text-sm font-semibold text-red-900">No self-leave available this month</p>
+                                <p className="text-sm text-red-700 mt-0.5">
+                                    Admin has granted <strong>{batchwiseDaysThisMonth} batchwise leave days</strong> for your batch this month (≥10), so no additional self-leave can be applied.
                                 </p>
                             </div>
                         </div>
@@ -295,10 +356,11 @@ export default function LeaveSelection() {
                             onDateToggle={handleDateToggle}
                             onPrevMonth={handlePrevMonth}
                             onNextMonth={handleNextMonth}
-                            maxLeaves={MAX_LEAVES_PER_MONTH}
+                            maxLeaves={effectiveCap}
                             leavesUsedThisMonth={leavesThisMonth}
                             today={today}
                             cutoffTime={cutoffTime}
+                            batchwiseDates={batchwiseDatesThisMonth}
                         />
                     </Card>
                 </div>
@@ -315,12 +377,14 @@ export default function LeaveSelection() {
                             {/* Leave Quota Progress */}
                             <div className={`p-3 rounded-lg border ${progressColors.bg} ${progressColors.border}`}>
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-semibold text-gray-600">Monthly Quota</span>
-                                    {leavesLoading ? (
+                                    <span className="text-xs font-semibold text-gray-600">
+                                        Monthly Self-Leave Quota
+                                    </span>
+                                    {isLoading ? (
                                         <div className="h-4 w-12 bg-white/60 rounded animate-pulse" />
                                     ) : (
                                         <span className={`text-xs font-bold ${progressColors.text}`}>
-                                            {leavesThisMonth} / {MAX_LEAVES_PER_MONTH}
+                                            {leavesThisMonth} / {effectiveCap}
                                         </span>
                                     )}
                                 </div>
@@ -331,18 +395,25 @@ export default function LeaveSelection() {
                                     />
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1.5 min-h-[16px]">
-                                    {leavesLoading ? (
+                                    {isLoading ? (
                                         <div className="h-3 w-24 bg-white/60 rounded animate-pulse" />
+                                    ) : effectiveCap === 0 ? (
+                                        'No self-leave available (batchwise leave ≥10)'
+                                    ) : isCapReached ? (
+                                        'No self-leave remaining'
                                     ) : (
-                                        isCapReached
-                                            ? 'No leaves remaining'
-                                            : `${remainingLeaves} ${remainingLeaves === 1 ? 'day' : 'days'} remaining`
+                                        `${remainingLeaves} self-leave ${remainingLeaves === 1 ? 'day' : 'days'} remaining`
                                     )}
                                 </p>
+                                {batchwiseDaysThisMonth > 0 && (
+                                    <p className="text-xs text-purple-600 font-medium mt-1">
+                                        +{batchwiseDaysThisMonth} batchwise day{batchwiseDaysThisMonth !== 1 ? 's' : ''} (purple on calendar)
+                                    </p>
+                                )}
                             </div>
                         </CardHeader>
                         <CardContent className="flex-1 overflow-y-auto max-h-[400px] p-0">
-                            {leavesLoading ? (
+                            {isLoading ? (
                                 <div className="p-4 space-y-4">
                                     <div className="h-10 w-full bg-gray-100 rounded animate-pulse" />
                                     <div className="h-10 w-full bg-gray-50 rounded animate-pulse" />
