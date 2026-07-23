@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { Search, MoreHorizontal, Users, UserPlus, X, Loader2, Trash2 } from 'lucide-react';
+import { Search, MoreHorizontal, Users, UserPlus, X, Loader2, Trash2, GraduationCap } from 'lucide-react';
 import { cn, getISTDate, getISTDateString } from '../lib/utils';
 import { useStudents } from '../context/StudentContext';
 import { useLeaves } from '../context/LeaveContext';
+import { BATCHES } from '../data/mockData';
 
 export default function ManageStudents() {
-    const { students, loading: studentsLoading, addStudent, removeStudent, updateStudentMessType } = useStudents();
+    const { students, loading: studentsLoading, addStudent, removeStudent, updateStudentMessType, updateStudentBatch } = useStudents();
     const { isStudentOnLeave, loading: leavesLoading } = useLeaves();
 
     const loading = studentsLoading || leavesLoading;
@@ -88,6 +89,13 @@ export default function ManageStudents() {
         const result = await updateStudentMessType(messNumber, type);
         if (!result.success) {
             alert('Failed to update meal preference: ' + result.error);
+        }
+    };
+
+    const handleUpdateBatch = async (studentId, batch) => {
+        const result = await updateStudentBatch(studentId, batch);
+        if (!result.success) {
+            alert('Failed to update batch: ' + result.error);
         }
     };
 
@@ -250,7 +258,7 @@ export default function ManageStudents() {
                             onClick={() => setDropdownState(null)}
                         />
                         <div
-                            className="fixed z-50 w-48 rounded-lg shadow-xl bg-white border border-gray-100 ring-1 ring-black ring-opacity-5 overflow-hidden"
+                            className="fixed z-50 w-56 rounded-lg shadow-xl bg-white border border-gray-100 ring-1 ring-black ring-opacity-5 overflow-hidden"
                             style={{ top: dropdownState.top, right: dropdownState.right }}
                         >
                             <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50/50 border-b border-gray-100">
@@ -273,6 +281,45 @@ export default function ManageStudents() {
                                         )}
                                     >
                                         {type} {student.messType === type && "✓"}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="border-t border-gray-100" />
+                            <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50/50 border-b border-gray-100 flex items-center gap-1.5">
+                                <GraduationCap className="w-3 h-3" /> Batch
+                            </div>
+                            <div className="py-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        handleUpdateBatch(student.id, null);
+                                        setDropdownState(null);
+                                    }}
+                                    className={cn(
+                                        "flex items-center w-full text-left px-4 py-2 text-sm transition-colors",
+                                        !student.batch
+                                            ? "bg-purple-50 text-purple-700 font-semibold"
+                                            : "text-gray-500 hover:bg-gray-50"
+                                    )}
+                                >
+                                    — Not set {!student.batch && '✓'}
+                                </button>
+                                {BATCHES.map((batch) => (
+                                    <button
+                                        key={batch}
+                                        type="button"
+                                        onClick={() => {
+                                            handleUpdateBatch(student.id, batch);
+                                            setDropdownState(null);
+                                        }}
+                                        className={cn(
+                                            "flex items-center w-full text-left px-4 py-2 text-sm transition-colors",
+                                            student.batch === batch
+                                                ? "bg-purple-50 text-purple-700 font-semibold"
+                                                : "text-gray-700 hover:bg-gray-50"
+                                        )}
+                                    >
+                                        {batch} {student.batch === batch && '✓'}
                                     </button>
                                 ))}
                             </div>
