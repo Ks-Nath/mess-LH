@@ -2,14 +2,22 @@ import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { Search, MoreHorizontal, Users, UserPlus, X, Loader2, Trash2, GraduationCap } from 'lucide-react';
+import { Search, MoreHorizontal, Users, UserPlus, X, Loader2, Trash2, GraduationCap, DoorClosed } from 'lucide-react';
 import { cn, getISTDate, getISTDateString } from '../lib/utils';
 import { useStudents } from '../context/StudentContext';
 import { useLeaves } from '../context/LeaveContext';
 import { BATCHES } from '../data/mockData';
 
 export default function ManageStudents() {
-    const { students, loading: studentsLoading, addStudent, removeStudent, updateStudentMessType, updateStudentBatch } = useStudents();
+    const { 
+        students, 
+        loading: studentsLoading, 
+        addStudent, 
+        removeStudent, 
+        updateStudentMessType, 
+        updateStudentBatch,
+        updateStudentRoomNo
+    } = useStudents();
     const { isStudentOnLeave, loading: leavesLoading } = useLeaves();
 
     const loading = studentsLoading || leavesLoading;
@@ -23,9 +31,14 @@ export default function ManageStudents() {
 
     // Add Student Modal state
     const [showAddModal, setShowAddModal] = useState(false);
-    const [newStudent, setNewStudent] = useState({ name: '', messNumber: '', phone: '', messType: 'Veg' });
+    const [newStudent, setNewStudent] = useState({ name: '', messNumber: '', phone: '', messType: 'Veg', roomNo: '' });
     const [addError, setAddError] = useState('');
     const [isAdding, setIsAdding] = useState(false);
+
+    // Edit Room Modal state
+    const [roomModalStudent, setRoomModalStudent] = useState(null);
+    const [roomInput, setRoomInput] = useState('');
+    const [isSavingRoom, setIsSavingRoom] = useState(false);
 
     const formatDateKey = (date) => {
         if (!(date instanceof Date)) return getISTDateString();
@@ -63,13 +76,13 @@ export default function ManageStudents() {
             messNumber: newStudent.messNumber.trim().toUpperCase(),
             phone: newStudent.phone.trim(),
             messType: newStudent.messType,
-            roomNo: '',
+            roomNo: newStudent.roomNo.trim(),
             messStatus: 'Active',
         });
         setIsAdding(false);
 
         if (result.success) {
-            setNewStudent({ name: '', messNumber: '', phone: '', messType: 'Veg' });
+            setNewStudent({ name: '', messNumber: '', phone: '', messType: 'Veg', roomNo: '' });
             setShowAddModal(false);
         } else {
             setAddError(result.error || 'Failed to add student.');
@@ -96,6 +109,36 @@ export default function ManageStudents() {
         const result = await updateStudentBatch(studentId, batch);
         if (!result.success) {
             alert('Failed to update batch: ' + result.error);
+        }
+    };
+
+    const handleSaveRoomNo = async (e) => {
+        if (e) e.preventDefault();
+        if (!roomModalStudent) return;
+
+        setIsSavingRoom(true);
+        const result = await updateStudentRoomNo(roomModalStudent.id, roomInput);
+        setIsSavingRoom(false);
+
+        if (result.success) {
+            setRoomModalStudent(null);
+            setRoomInput('');
+        } else {
+            alert('Failed to update room number: ' + result.error);
+        }
+    };
+
+    const handleClearRoomNo = async () => {
+        if (!roomModalStudent) return;
+        setIsSavingRoom(true);
+        const result = await updateStudentRoomNo(roomModalStudent.id, null);
+        setIsSavingRoom(false);
+
+        if (result.success) {
+            setRoomModalStudent(null);
+            setRoomInput('');
+        } else {
+            alert('Failed to clear room number: ' + result.error);
         }
     };
 
@@ -180,6 +223,7 @@ export default function ManageStudents() {
                                 <tr>
                                     <th className="px-6 py-4 font-semibold text-gray-900">Mess No</th>
                                     <th className="px-6 py-4 font-semibold text-gray-900">Name</th>
+                                    <th className="px-6 py-4 font-semibold text-gray-900">Room</th>
                                     <th className="px-6 py-4 font-semibold text-gray-900">Phone</th>
                                     <th className="px-6 py-4 font-semibold text-gray-900 hidden md:table-cell">Batch</th>
                                     <th className="px-6 py-4 font-semibold text-gray-900">Type</th>
@@ -192,6 +236,34 @@ export default function ManageStudents() {
                                     <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-gray-900">{student.messNumber}</td>
                                         <td className="px-6 py-4 text-gray-700 font-medium">{student.name}</td>
+                                        <td className="px-6 py-4">
+                                            {student.roomNo ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setRoomModalStudent(student);
+                                                        setRoomInput(student.roomNo);
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-100 hover:bg-indigo-50 text-gray-700 hover:text-indigo-700 border border-gray-200 hover:border-indigo-200 transition-all cursor-pointer"
+                                                    title="Click to edit room number"
+                                                >
+                                                    <DoorClosed className="w-3 h-3 text-gray-400" />
+                                                    <span>{student.roomNo}</span>
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setRoomModalStudent(student);
+                                                        setRoomInput('');
+                                                    }}
+                                                    className="text-gray-400 hover:text-indigo-600 text-xs italic inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                                    title="Click to assign room number"
+                                                >
+                                                    <span>+ Assign</span>
+                                                </button>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 text-gray-500">{student.phone}</td>
                                         <td className="px-6 py-4 hidden md:table-cell">
                                             {student.batch ? (
@@ -324,6 +396,29 @@ export default function ManageStudents() {
                                 ))}
                             </div>
                             <div className="border-t border-gray-100" />
+                            <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50/50 border-b border-gray-100 flex items-center gap-1.5">
+                                <DoorClosed className="w-3 h-3" /> Room Number
+                            </div>
+                            <div className="py-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setRoomModalStudent(student);
+                                        setRoomInput(student.roomNo || '');
+                                        setDropdownState(null);
+                                    }}
+                                    className="flex items-center justify-between w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                                >
+                                    <span className="flex items-center gap-2">
+                                        <DoorClosed className="w-4 h-4 text-gray-400 shrink-0" />
+                                        {student.roomNo ? `Room: ${student.roomNo}` : 'Set Room Number'}
+                                    </span>
+                                    <span className="text-xs text-indigo-600 font-semibold">
+                                        {student.roomNo ? 'Edit' : 'Add'}
+                                    </span>
+                                </button>
+                            </div>
+                            <div className="border-t border-gray-100" />
                             <div className="py-1">
                                 <button
                                     type="button"
@@ -353,7 +448,7 @@ export default function ManageStudents() {
                                 </div>
                                 <h2 className="text-lg font-semibold text-gray-900">Add New Student</h2>
                             </div>
-                            <button onClick={() => { setShowAddModal(false); setAddError(''); }} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors">
+                            <button onClick={() => { setShowAddModal(false); setAddError(''); }} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer">
                                 <X className="w-4 h-4 text-gray-500" />
                             </button>
                         </div>
@@ -390,6 +485,18 @@ export default function ManageStudents() {
                                 <p className="text-xs text-gray-400 mt-1">This will be the login username</p>
                             </div>
 
+                            {/* Room Number */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Room Number (Optional)</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. A-204"
+                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                    value={newStudent.roomNo}
+                                    onChange={(e) => setNewStudent(prev => ({ ...prev, roomNo: e.target.value }))}
+                                />
+                            </div>
+
                             {/* Phone */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
@@ -413,7 +520,7 @@ export default function ManageStudents() {
                                             type="button"
                                             onClick={() => setNewStudent(prev => ({ ...prev, messType: type }))}
                                             className={cn(
-                                                "px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium border transition-all",
+                                                "px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium border transition-all cursor-pointer",
                                                 newStudent.messType === type
                                                     ? type === 'Veg'
                                                         ? "bg-green-50 text-green-700 border-green-300 ring-2 ring-green-200"
@@ -438,12 +545,91 @@ export default function ManageStudents() {
 
                             {/* Action Buttons */}
                             <div className="flex justify-end gap-3 pt-2">
-                                <Button type="button" variant="outline" onClick={() => { setShowAddModal(false); setAddError(''); }}>
+                                <Button type="button" variant="outline" onClick={() => { setShowAddModal(false); setAddError(''); }} className="cursor-pointer">
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={isAdding} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
+                                <Button type="submit" disabled={isAdding} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 cursor-pointer">
                                     {isAdding && <Loader2 className="w-4 h-4 animate-spin" />}
                                     {isAdding ? 'Adding...' : 'Add Student'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit / Set Room Number Modal */}
+            {roomModalStudent && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-gray-100 animate-scale-up">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/80">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                    <DoorClosed className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-900 text-sm">Room Number</h3>
+                                    <p className="text-xs text-gray-500">{roomModalStudent.name} ({roomModalStudent.messNumber})</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setRoomModalStudent(null)}
+                                className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
+                            >
+                                <X className="w-4 h-4 text-gray-500" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveRoomNo} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                    Room Number
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. A-204, B-112, 105"
+                                    className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
+                                    value={roomInput}
+                                    onChange={(e) => setRoomInput(e.target.value)}
+                                    autoFocus
+                                />
+                                <p className="text-xs text-gray-400 mt-1.5">Enter room number or leave empty to clear.</p>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2.5 pt-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setRoomModalStudent(null)}
+                                    disabled={isSavingRoom}
+                                    className="text-xs cursor-pointer"
+                                >
+                                    Cancel
+                                </Button>
+                                {roomModalStudent.roomNo && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={handleClearRoomNo}
+                                        disabled={isSavingRoom}
+                                        className="text-xs text-red-600 hover:bg-red-50 cursor-pointer"
+                                    >
+                                        Clear
+                                    </Button>
+                                )}
+                                <Button
+                                    type="submit"
+                                    disabled={isSavingRoom}
+                                    className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer font-semibold"
+                                >
+                                    {isSavingRoom ? (
+                                        <>
+                                            <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        'Save Room'
+                                    )}
                                 </Button>
                             </div>
                         </form>

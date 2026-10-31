@@ -208,8 +208,44 @@ export function StudentProvider({ children }) {
         }
     };
 
+    const updateStudentRoomNo = async (studentId, roomNo) => {
+        if (!user?.hostelId) return { success: false, error: 'No hostel assigned' };
+
+        const trimmedRoom = roomNo ? roomNo.trim() : null;
+
+        try {
+            const { error } = await supabase
+                .from('students')
+                .update({ room_no: trimmedRoom })
+                .eq('id', studentId)
+                .eq('hostel_id', user.hostelId);
+
+            if (error) throw error;
+
+            // Optimistic UI update
+            setStudents(prev => prev.map(s =>
+                s.id === studentId ? { ...s, roomNo: trimmedRoom } : s
+            ));
+
+            return { success: true };
+        } catch (error) {
+            console.error('Error updating student room number:', error);
+            return { success: false, error: error.message };
+        }
+    };
+
     return (
-        <StudentContext.Provider value={{ students, loading, addStudent, removeStudent, getStudentByMessNumber, updateLegacyFine, updateStudentMessType, updateStudentBatch }}>
+        <StudentContext.Provider value={{ 
+            students, 
+            loading, 
+            addStudent, 
+            removeStudent, 
+            getStudentByMessNumber, 
+            updateLegacyFine, 
+            updateStudentMessType, 
+            updateStudentBatch,
+            updateStudentRoomNo
+        }}>
             {children}
         </StudentContext.Provider>
     );

@@ -200,6 +200,133 @@ export function EstablishmentProvider({ children }) {
     };
 
     /**
+     * Mark multiple students (e.g. an entire batch) as paid.
+     * @param {Array<{id: string, messNumber: string}>} studentsList
+     * @param {string} month - Format "YYYY-MM"
+     * @param {string} feeType - 'establishment' | 'mess'
+     */
+    const markBatchAsPaid = async (studentsList, month, feeType = 'establishment') => {
+        if (!user?.hostelId) return { success: false, error: 'No hostel' };
+        if (!studentsList || studentsList.length === 0) return { success: true, count: 0 };
+
+        const paidDate = getISTDateString();
+
+        // Optimistic update
+        setPayments(prev => {
+            const updated = [...prev];
+            for (const s of studentsList) {
+                const idx = updated.findIndex(
+                    p => p.studentId === s.id && p.month === month && p.feeType === feeType
+                );
+                if (idx >= 0) {
+                    updated[idx] = { ...updated[idx], isPaid: true, paidDate };
+                } else {
+                    updated.push({
+                        id: crypto.randomUUID(),
+                        studentId: s.id,
+                        messNumber: s.messNumber,
+                        month,
+                        feeType,
+                        isPaid: true,
+                        paidDate,
+                        hostelId: user.hostelId,
+                    });
+                }
+            }
+            return updated;
+        });
+
+        try {
+            const records = studentsList.map(s => ({
+                student_id: s.id,
+                mess_number: s.messNumber,
+                month,
+                fee_type: feeType,
+                is_paid: true,
+                paid_date: paidDate,
+                hostel_id: user.hostelId,
+            }));
+
+            const BATCH_SIZE = 200;
+            for (let i = 0; i < records.length; i += BATCH_SIZE) {
+                const chunk = records.slice(i, i + BATCH_SIZE);
+                const { error } = await supabase
+                    .from('fee_payments')
+                    .upsert(chunk, { onConflict: 'student_id,month,fee_type' });
+
+                if (error) throw error;
+            }
+
+            return { success: true, count: studentsList.length };
+        } catch (err) {
+            console.error('Error marking batch as paid:', err);
+            await fetchPayments();
+            return { success: false, error: err.message };
+        }
+    };
+
+    /**
+     * Mark multiple students (e.g. an entire batch) as unpaid.
+     */
+    const markBatchAsUnpaid = async (studentsList, month, feeType = 'establishment') => {
+        if (!user?.hostelId) return { success: false, error: 'No hostel' };
+        if (!studentsList || studentsList.length === 0) return { success: true, count: 0 };
+
+        // Optimistic update
+        setPayments(prev => {
+            const updated = [...prev];
+            for (const s of studentsList) {
+                const idx = updated.findIndex(
+                    p => p.studentId === s.id && p.month === month && p.feeType === feeType
+                );
+                if (idx >= 0) {
+                    updated[idx] = { ...updated[idx], isPaid: false, paidDate: null };
+                } else {
+                    updated.push({
+                        id: crypto.randomUUID(),
+                        studentId: s.id,
+                        messNumber: s.messNumber,
+                        month,
+                        feeType,
+                        isPaid: false,
+                        paidDate: null,
+                        hostelId: user.hostelId,
+                    });
+                }
+            }
+            return updated;
+        });
+
+        try {
+            const records = studentsList.map(s => ({
+                student_id: s.id,
+                mess_number: s.messNumber,
+                month,
+                fee_type: feeType,
+                is_paid: false,
+                paid_date: null,
+                hostel_id: user.hostelId,
+            }));
+
+            const BATCH_SIZE = 200;
+            for (let i = 0; i < records.length; i += BATCH_SIZE) {
+                const chunk = records.slice(i, i + BATCH_SIZE);
+                const { error } = await supabase
+                    .from('fee_payments')
+                    .upsert(chunk, { onConflict: 'student_id,month,fee_type' });
+
+                if (error) throw error;
+            }
+
+            return { success: true, count: studentsList.length };
+        } catch (err) {
+            console.error('Error marking batch as unpaid:', err);
+            await fetchPayments();
+            return { success: false, error: err.message };
+        }
+    };
+
+    /**
      * O(1) lookup via the pre-built map instead of O(n) .find()
      */
     const getPaymentStatus = (studentId, month, feeType) => {
@@ -239,12 +366,14 @@ export function EstablishmentProvider({ children }) {
         loading,
         markAsPaid,
         markAsUnpaid,
+        markBatchAsPaid,
+        markBatchAsUnpaid,
         getPaymentStatus,
         getStudentPayments,
         calculateFineForStudent,
         calculateFineForMonth,
         fetchPayments,
-    }), [payments, loading, paymentMap]);
+    }), [payments, loading, paymentMap, markBatchAsPaid, markBatchAsUnpaid]);
 
     return (
         <EstablishmentContext.Provider value={contextValue}>
